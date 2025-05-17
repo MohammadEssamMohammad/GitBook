@@ -2255,3 +2255,287 @@ graph TD
 The core structure and connections remain the same. The goal here is to eliminate any characters in the subgraph labels that the specific Mermaid parser might be struggling with.
 
 If this still fails, the issue is likely deeper within the specific Mermaid rendering environment you're using, or there might be an invisible character issue in the pasted code. In such cases, testing the diagram incrementally in a dedicated Mermaid live editor (like the one on mermaid.live) is the best way to pinpoint the exact problematic line.
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Essential diagrams
+Okay, for an overall view of a project without getting lost in the weeds, these diagrams are generally essential:
+
+1.  **C4 Model - Level 1: System Context Diagram:**
+    *   **Purpose:** Shows your system as a black box and how it interacts with its users (actors) and other systems it depends on or integrates with. It answers: Who uses the system? What other systems does it use?
+    *   **Why Essential:** Provides the broadest overview of your system's place in the world.
+
+2.  **C4 Model - Level 2: Container Diagram:**
+    *   **Purpose:** Zooms into your system, showing the high-level deployable/runnable units (containers like web applications, APIs, databases, mobile apps, file systems) and the interactions between them.
+    *   **Why Essential:** Explains the high-level technology choices and how the major pieces of your system connect. This is where you'd show frontend, backend API, database, and any message queues or key services. The "High-Level Architectural Diagram" we worked on previously is a good fit for this.
+
+3.  **Component Diagram (High-Level Backend Structure):**
+    *   **Purpose:** Specifically for the backend, this shows the major logical components or layers (e.g., API Layer, Service/Business Logic Layer, Data Access/Repository Layer, Core/Domain Layer) and their dependencies.
+    *   **Why Essential:** Illustrates the internal architecture of your backend monolith or microservices group, explaining how concerns are separated.
+
+4.  **Use Case Diagram:**
+    *   **Purpose:** Describes the functional requirements of the system from the perspective of the users (actors). It shows what actors can do with the system.
+    *   **Why Essential:** Gives a clear picture of the system's capabilities and who benefits from them without detailing *how* it's done.
+
+5.  **Deployment Diagram (Simplified):**
+    *   **Purpose:** Shows the physical or virtual infrastructure on which the system's containers run.
+    *   **Why Essential:** Gives a sense of how the system is hosted and the physical distribution of its parts.
+
+Let's draw these for your project.
+
+---
+
+**1. C4 Model - Level 1: System Context Diagram**
+
+```mermaid
+graph TD
+    A[Admin] -->|Manages & Monitors| S(Grading Management System)
+    D[Doctor] -->|Manages Projects, Tasks, Evaluates| S
+    T[Student] -->|Manages Team, Submits Work, Views Grades| S
+
+    S -->|Sends Emails (OTP, Notifications, Reset Links)| ES[Email SMTP Service]
+    S -->|Stores & Retrieves Data| DB[(Grading Database)]
+
+    classDef system fill:#1168bd,stroke:#333,stroke-width:4px,color:#fff;
+    classDef actor fill:#7E827A,stroke:#333,stroke-width:2px,color:#fff;
+    classDef ext_system fill:#999,stroke:#333,stroke-width:2px,color:#fff;
+
+    class S system;
+    class A,D,T actor;
+    class ES,DB ext_system;
+```
+
+**Explanation:**
+*   **Actors:** Admin, Doctor, Student.
+*   **System:** Grading Management System (your application).
+*   **External Systems:**
+    *   Email SMTP Service: For sending out various email communications.
+    *   Grading Database: Where all the application data is stored.
+
+---
+
+**2. C4 Model - Level 2: Container Diagram**
+
+*(This is similar to the High-Level Architecture diagram we refined, focusing on deployable units)*
+
+```mermaid
+graph TD
+    subgraph UserEnvironment [User's Environment]
+        UA[User (Admin, Doctor, Student) via Web Browser]
+    end
+
+    subgraph GradingSystem [Grading Management System]
+        direction LR
+        Frontend[Angular SPA <br><i>(Runs in User's Browser)</i>]
+        BackendAPI[ASP.NET Core Web API <br><i>(Hosts Business Logic, API Endpoints, SignalR Hub)</i>]
+        Database[(SQL Server Database <br><i>(Stores all application data)</i>)]
+    end
+
+    subgraph ExternalServices
+        EmailService[Email SMTP Service]
+    end
+
+    UA -->|HTTPS| Frontend
+    Frontend -->|HTTPS (REST API)| BackendAPI
+    Frontend <-->|WebSocket (SignalR for Notifications)| BackendAPI
+    BackendAPI -->|Database Connection| Database
+    BackendAPI -->|SMTP| EmailService
+
+    classDef webapp fill:#lightgreen,stroke:#333,stroke-width:2px;
+    classDef api fill:#lightblue,stroke:#333,stroke-width:2px;
+    classDef db fill:#orange,stroke:#333,stroke-width:2px;
+    classDef actor fill:#wheat,stroke:#333,stroke-width:2px;
+    classDef ext_service fill:#lightgrey,stroke:#333,stroke-width:2px;
+
+    class Frontend webapp;
+    class BackendAPI api;
+    class Database db;
+    class UA actor;
+    class EmailService ext_service;
+```
+**Explanation:**
+*   **Containers:**
+    *   Angular SPA: The frontend application running in the user's browser.
+    *   ASP.NET Core Web API: The backend server application.
+    *   SQL Server Database: The database system.
+*   **Interactions:** Shows how users interact with the SPA, how the SPA communicates with the backend API (REST and SignalR), and how the API interacts with the database and external email service.
+
+---
+
+**3. Component Diagram (High-Level Backend Structure)**
+
+```mermaid
+graph TD
+    subgraph GradingManagementSystem_Backend [Backend Application]
+        APIs[GradingManagementSystem.APIs <br><i>(Controllers, Hubs, Middlewares)</i>]
+        Service[GradingManagementSystem.Service <br><i>(Business Logic, Service Implementations)</i>]
+        Repository[GradingManagementSystem.Repository <br><i>(Data Access, UnitOfWork, DbContext)</i>]
+        Core[GradingManagementSystem.Core <br><i>(Entities, DTOs, Interfaces)</i>]
+    end
+
+    DB[(Database)]
+
+    APIs -->|Uses| Service
+    APIs -->|Uses| Core
+
+    Service -->|Uses Interfaces from| Core
+    Service -->|Uses Implementations from| Repository
+
+    Repository -->|Uses Entities from| Core
+    Repository -->|Accesses| DB
+
+    %% Dependencies flow inwards for interfaces, outwards for concrete types.
+    %% For simplicity, this shows general usage.
+
+    classDef layer_presentation fill:#89CFF0,stroke:#333,stroke-width:2px;
+    classDef layer_service fill:#98FB98,stroke:#333,stroke-width:2px;
+    classDef layer_repo fill:#FFDAB9,stroke:#333,stroke-width:2px;
+    classDef layer_core fill:#FFFFE0,stroke:#333,stroke-width:2px;
+    classDef external_db fill:#orange,stroke:#333,stroke-width:2px;
+
+    class APIs layer_presentation;
+    class Service layer_service;
+    class Repository layer_repo;
+    class Core layer_core;
+    class DB external_db;
+```
+
+**Explanation:**
+*   Shows the four main projects/layers of your backend.
+*   Arrows indicate dependencies:
+    *   `APIs` layer depends on the `Service` layer (to call business logic) and `Core` layer (for DTOs).
+    *   `Service` layer depends on `Core` (for interfaces and entities) and `Repository` (via interfaces, to access data).
+    *   `Repository` layer depends on `Core` (for entities and repository interfaces) and interacts with the `Database`.
+    *   The `Core` layer is central and should have minimal dependencies on other layers.
+
+---
+
+**4. Use Case Diagram**
+
+```mermaid
+graph LR
+    leftTitle: Grading Management System - Use Cases
+
+    actor Admin
+    actor Doctor
+    actor Student
+
+    subgraph SystemBoundary [Grading Management System]
+        direction LR
+        UC1_Admin[Manage System Configuration <br><i>(Academic Year, Criteria)</i>]
+        UC2_Admin[Manage Users <br><i>(Create Doctor Accounts)</i>]
+        UC3_Admin[Manage Project Lifecycle <br><i>(Review Submitted Ideas)</i>]
+        UC4_Admin[Manage Schedules & Evaluations]
+        UC5_Admin[Send Notifications]
+        UC6_Admin[Generate Grade Reports]
+
+        UC7_Doctor[Manage Project Ideas <br><i>(Submit, Review Team Requests)</i>]
+        UC8_Doctor[Manage Tasks]
+        UC9_Doctor[Perform Evaluations <br><i>(Supervisor/Examiner)</i>]
+        UC10_Doctor[View Schedules]
+
+        UC11_Student[Manage Team <br><i>(Create, Invite, Join)</i>]
+        UC12_Student[Manage Project <br><i>(Submit Idea, Request Doctor's Idea)</i>]
+        UC13_Student[View Grades]
+        UC14_Student[View Schedules]
+        UC15_Student[View Tasks]
+        UC16_Student[View & Respond to Invitations]
+
+        UC_Common_Login[Login to System]
+        UC_Common_Profile[Manage Profile]
+        UC_Common_Notifications[View Notifications]
+    end
+
+    Admin --> UC1_Admin
+    Admin --> UC2_Admin
+    Admin --> UC3_Admin
+    Admin --> UC4_Admin
+    Admin --> UC5_Admin
+    Admin --> UC6_Admin
+
+    Doctor --> UC7_Doctor
+    Doctor --> UC8_Doctor
+    Doctor --> UC9_Doctor
+    Doctor --> UC10_Doctor
+
+    Student --> UC11_Student
+    Student --> UC12_Student
+    Student --> UC13_Student
+    Student --> UC14_Student
+    Student --> UC15_Student
+    Student --> UC16_Student
+
+    Admin --> UC_Common_Login
+    Doctor --> UC_Common_Login
+    Student --> UC_Common_Login
+
+    Admin --> UC_Common_Profile
+    Doctor --> UC_Common_Profile
+    Student --> UC_Common_Profile
+
+    Admin --> UC_Common_Notifications
+    Doctor --> UC_Common_Notifications
+    Student --> UC_Common_Notifications
+```
+
+**Explanation:**
+*   Shows the main actors (Admin, Doctor, Student).
+*   Lists high-level use cases available to each actor, providing a functional overview.
+*   Common use cases like Login, Manage Profile, and View Notifications are shared.
+
+---
+
+**5. Deployment Diagram (Simplified)**
+
+```mermaid
+graph TD
+    subgraph UserDevice [User Device]
+        Browser[Web Browser <br><i>(Angular SPA)</i>]
+    end
+
+    subgraph Cloud_Or_OnPrem_Server [Server Infrastructure]
+        direction LR
+        WebServer[Web Server <br><i>(e.g., IIS, Kestrel)</i>]
+        DatabaseServer[Database Server <br><i>(e.g., SQL Server Instance)</i>]
+    end
+
+    subgraph ExternalServices_Physical [External Services (Conceptual Location)]
+        EmailInfra[Email Infrastructure <br><i>(SMTP Relay/Service)</i>]
+    end
+
+    Browser -->|HTTPS| WebServer
+
+    WebServer -- Deploys --> ASPNETCoreApp[ASP.NET Core API App <br><i>(GradingManagementSystem.APIs, .Service, .Repository, .Core)</i>]
+    ASPNETCoreApp -->|TCP/IP (DB Protocol)| GradingDB[(Grading Database)]
+    ASPNETCoreApp -->|SMTP/TLS| EmailInfra
+
+    DatabaseServer -- Hosts --> GradingDB
+
+    classDef node fill:#lightblue,stroke:#333,stroke-width:2px;
+    classDef artifact fill:#lightyellow,stroke:#333,stroke-width:2px;
+    classDef user_node fill:#wheat,stroke:#333,stroke-width:2px;
+
+    class WebServer,DatabaseServer,EmailInfra node;
+    class ASPNETCoreApp,GradingDB artifact;
+    class Browser user_node;
+```
+
+**Explanation:**
+*   **Nodes:** Represent physical or virtual servers/devices.
+*   **Artifacts:** Represent the deployed software components.
+*   Shows that the Angular SPA runs in the user's browser and communicates with the ASP.NET Core application hosted on a Web Server.
+*   The ASP.NET Core application, in turn, communicates with the Database hosted on a Database Server and the Email Infrastructure.
+
+---
+
+These five diagrams together should provide a good, high-level understanding of your project's architecture, its main components, functionalities, and how it's deployed, without delving into minute implementation details.
