@@ -2662,3 +2662,122 @@ The most common culprits for the "PS" error in Mermaid, when the overall structu
 The "NODE_STRING" error is often about how nodes/actors are defined or linked before the parser expects it. Putting actor declarations on separate lines is a good first step to debug that for the Use Case diagram.
 
 If these super-simplified versions still fail, the issue might be more fundamental to how your environment handles even basic Mermaid subgraphs or node definitions, or there could be invisible problematic characters in the copy-paste. Using a dedicated online Mermaid editor would be the definitive test for the syntax itself.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Okay, the error message "Expecting 'SEMI', 'NEWLINE', 'EOF', 'AMP', 'START_LINK', 'LINK', 'LINK_ID', got 'NODE_STRING'" for the Use Case diagram, particularly pointing to the line with `actor Admin actor Doct...`, strongly suggests that the renderer is not correctly parsing multiple `actor` declarations on the same line *or* it's having trouble with how the `actor` keyword is being followed.
+
+Even though I put them on separate lines in the "Changes Made" explanation, the *actual diagram code block you quoted* still has them on a single line:
+```mermaid
+graph LR
+    actor Admin actor Doctor actor Student  <-- THIS LINE IS THE LIKELY CULPRIT
+```
+
+Let's ensure they are truly on separate lines in the code block itself.
+
+**4. Use Case Diagram (Actors on Separate Lines - Critical Fix)**
+
+```mermaid
+graph LR
+    actor Admin
+    actor Doctor
+    actor Student
+
+    subgraph SystemBoundary [Grading Management System]
+        direction LR
+        UC1[Manage_Sys_Config]
+        UC2[Admin_Manage_Users]
+        UC3[Admin_Review_Projects]
+        UC4[Admin_Manage_Schedules]
+        UC5[Admin_Send_Notifications]
+        UC6[Admin_Get_Reports]
+
+        UC7[Doctor_Manage_Projects]
+        UC8[Doctor_Manage_Tasks]
+        UC9[Doctor_Perform_Evaluations]
+        UC10[Doctor_View_Schedules]
+
+        UC11[Student_Manage_Team]
+        UC12[Student_Manage_Project_Sub]
+        UC13[Student_View_Grades]
+        UC14[Student_View_Schedules]
+        UC15[Student_View_Tasks]
+        UC16[Student_Handle_Invites]
+
+        UC_Login[Login]
+        UC_Profile[Manage_Profile]
+        UC_Notifications_View[View_Notifications]
+    end
+
+    Admin --> UC1
+    Admin --> UC2
+    Admin --> UC3
+    Admin --> UC4
+    Admin --> UC5
+    Admin --> UC6
+
+    Doctor --> UC7
+    Doctor --> UC8
+    Doctor --> UC9
+    Doctor --> UC10
+
+    Student --> UC11
+    Student --> UC12
+    Student --> UC13
+    Student --> UC14
+    Student --> UC15
+    Student --> UC16
+
+    Admin --> UC_Login
+    Doctor --> UC_Login
+    Student --> UC_Login
+
+    Admin --> UC_Profile
+    Doctor --> UC_Profile
+    Student --> UC_Profile
+
+    Admin --> UC_Notifications_View
+    Doctor --> UC_Notifications_View
+    Student --> UC_Notifications_View
+```
+
+**The key change is ensuring:**
+```mermaid
+    actor Admin
+    actor Doctor
+    actor Student
+```
+Each `actor` declaration is on its own line. This is the most standard and safest way to declare actors in Mermaid for use case diagrams.
+
+If this *still* fails, then the environment you are using to render Mermaid has a very specific or possibly buggy parser for use case diagrams.
+
+**Next Steps if It Fails:**
+
+1.  **Confirm Copy-Paste:** Double-check that when you copy this, the line breaks are preserved.
+2.  **Test in mermaid.live:** Please take this exact block and paste it into [https://mermaid.live](https://mermaid.live). This will confirm if the syntax itself is valid for standard Mermaid.
+    *   If it works in mermaid.live, the issue is 100% with the renderer you are using.
+    *   If it *doesn't* work in mermaid.live (which is unlikely for this specific syntax), then there's a more subtle syntax issue I'm missing or an invisible character.
+3.  **Simplify Further (Extreme):** If it fails in your renderer but works in mermaid.live, you might have to resort to an even simpler diagram type if your renderer can't handle use case diagrams well, or just provide the textual description of the use cases.
+
+For instance, you could try representing it as a very basic graph, though it loses the "use case" semantics:
+
+```mermaid
+graph LR
+    Admin --> Manage_Sys_Config
+    Admin --> Admin_Manage_Users
+    %% ... and so on for all connections
+```
+This is not ideal but might render if the `actor` and `subgraph` keywords for use cases are the problem in your specific environment.
