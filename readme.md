@@ -1942,115 +1942,99 @@ Based on the project structure you've provided (separation into `GradingManageme
 ```mermaid
 graph TD
     subgraph User_Devices [User Devices]
-        direction LR
         Browser_Admin[Admin's Browser]
         Browser_Doctor[Doctor's Browser]
         Browser_Student[Student's Browser]
     end
 
     subgraph Frontend_Application [Frontend Application (Angular - SPA)]
-        direction TB
-        FE_Auth[Authentication Components (Login, Register, etc.)]
+        FE_Auth[Authentication Components]
         FE_AdminDashboard[Admin Dashboard Components]
-        FE_DoctorFeatures[Doctor Feature Components (Grading, Projects, etc.)]
-        FE_StudentFeatures[Student Feature Components (Team Hub, Grades, etc.)]
-        FE_Shared[Shared UI Components (Navbar, Popups)]
-        FE_Services[Angular Services (HTTP, State, Auth)]
-        FE_SignalR_Client[SignalR Client (for Notifications)]
+        FE_DoctorFeatures[Doctor Feature Components]
+        FE_StudentFeatures[Student Feature Components]
+        FE_Shared[Shared UI Components]
+        FE_Services[Angular Services]
+        FE_SignalR_Client[SignalR Client]
     end
 
     subgraph Backend_Application [Backend Application (ASP.NET Core)]
-        direction TB
-        subgraph API_Layer [API Layer (GradingManagementSystem.APIs)]
-            direction LR
-            API_Controllers[API Controllers (*Controller.cs)]
-            API_Hubs[SignalR Hubs (NotificationHub)]
-            API_Middlewares[Middlewares (ExceptionHandling)]
-            API_Extensions[Extensions (Services, Identity, Swagger)]
+        subgraph API_Layer [API Layer]
+            API_Controllers[API Controllers]
+            API_Hubs[SignalR Hubs]
+            API_Middlewares[Middlewares]
+            API_Extensions[Extensions]
         end
 
-        subgraph Service_Layer [Service Layer (GradingManagementSystem.Service)]
-            direction LR
+        subgraph Service_Layer [Service Layer]
             Auth_Service[AuthenticationService]
             Profile_Service[UserProfileService]
-            Project_Service[Project Logic (Implicit)]
-            Team_Service[Team Logic (Implicit)]
+            Project_Service[Project Logic]
+            Team_Service[Team Logic]
             Task_Service[TaskService]
-            Evaluation_Service[Evaluation Logic (Implicit)]
-            Notification_Service[Notification Logic (Implicit)]
+            Evaluation_Service[Evaluation Logic]
+            Notification_Service[Notification Logic]
             Email_Service[EmailService]
             Token_Service[TokenService]
         end
 
-        subgraph Core_Layer [Core Layer (GradingManagementSystem.Core)]
-            direction LR
-            Core_Entities[Entities (*.cs in Core/Entities)]
-            Core_DTOs[DTOs (*.cs in Core/DTOs)]
-            Core_Interfaces[Interfaces (IUnitOfWork, IGenericRepository, I*Service, I*Repository)]
+        subgraph Core_Layer [Core Layer]
+            Core_Entities[Entities]
+            Core_DTOs[DTOs]
+            Core_Interfaces[Interfaces]
         end
 
-        subgraph Repository_Layer [Repository/Data Access Layer (GradingManagementSystem.Repository)]
-            direction LR
+        subgraph Repository_Layer [Repository/Data Access Layer]
             Repo_UnitOfWork[UnitOfWork]
             Repo_Generic[GenericRepository]
-            Repo_Specific[Specific Repositories (NotificationRepository, etc.)]
-            Repo_DbContext[GradingManagementSystemDbContext]
+            Repo_Specific[Specific Repositories]
+            Repo_DbContext[DbContext]
             Repo_Identity[Identity SeedData]
         end
     end
 
     subgraph External_Services [External Services]
         DB[(SQL Server Database)]
-        SMTP[SMTP Server (for Emails)]
+        SMTP[SMTP Server]
     end
 
     %% Frontend to Backend API Communication
-    Browser_Admin --> FE_Auth
     Browser_Admin --> FE_AdminDashboard
-    Browser_Admin --> FE_Shared
-    Browser_Admin --> FE_Services
-    Browser_Admin --- FE_SignalR_Client
-
-    Browser_Doctor --> FE_Auth
     Browser_Doctor --> FE_DoctorFeatures
-    Browser_Doctor --> FE_Shared
-    Browser_Doctor --> FE_Services
-    Browser_Doctor --- FE_SignalR_Client
-
-    Browser_Student --> FE_Auth
     Browser_Student --> FE_StudentFeatures
-    Browser_Student --> FE_Shared
-    Browser_Student --> FE_Services
-    Browser_Student --- FE_SignalR_Client
 
-    FE_Services -->|HTTP Requests (REST API)| API_Controllers
+    FE_Auth --> FE_Services
+    FE_AdminDashboard --> FE_Services
+    FE_DoctorFeatures --> FE_Services
+    FE_StudentFeatures --> FE_Services
+    FE_Shared --> FE_AdminDashboard
+    FE_Shared --> FE_DoctorFeatures
+    FE_Shared --> FE_StudentFeatures
+
+    FE_Services -->|HTTP REST API| API_Controllers
     FE_SignalR_Client <-->|WebSocket (SignalR)| API_Hubs
 
-    %% Backend Layer Dependencies (Following Dependency Rule - Outer layers depend on inner layers)
-    API_Controllers -->|Uses| Service_Layer
-    API_Controllers -->|Uses| Core_DTOs
-    API_Hubs -->|Uses| Service_Layer
-    API_Hubs -->|Uses| Core_DTOs
-    API_Middlewares --|> API_Layer
-    API_Extensions --|> API_Layer
+    %% Backend Layer Dependencies
+    API_Controllers --> Service_Layer
+    API_Controllers --> Core_DTOs
+    API_Hubs --> Service_Layer
+    API_Hubs --> Core_DTOs
 
-    Service_Layer -->|Uses| Core_Interfaces
-    Service_Layer -->|Uses| Repo_UnitOfWork
-    Service_Layer -->|Uses| Repo_Specific
-    Service_Layer -->|Uses| Email_Service
-    Service_Layer -->|Uses| Token_Service
+    Service_Layer --> Core_Interfaces
+    Service_Layer --> Repo_UnitOfWork
+    Service_Layer --> Email_Service
+    Service_Layer --> Token_Service
 
-    %% Repository Layer depends on Core and interacts with DB
-    Repo_UnitOfWork -->|Uses| Repo_DbContext
-    Repo_Generic -->|Uses| Repo_DbContext
-    Repo_Specific -->|Uses| Repo_DbContext
+    Repo_UnitOfWork --> Repo_DbContext
+    Repo_Generic --> Repo_DbContext
+    Repo_Specific --> Repo_DbContext
     Repo_DbContext --> DB
     Repo_Identity --> DB
 
-    %% Core Layer is central, other layers can depend on its interfaces/entities
-    Service_Layer -->|Implements| Core_Interfaces
-    Repository_Layer -->|Implements| Core_Interfaces
-    API_Layer -->|Uses DTOs/Entities from| Core_Layer
+    %% Core Layer is central
+    Service_Layer --> Core_Entities
+    Repository_Layer --> Core_Entities
+    Repository_Layer --> Core_Interfaces
+
 
     %% External Service Interactions
     Email_Service --> SMTP
@@ -2062,14 +2046,12 @@ graph TD
     classDef userdevice fill:#wheat,stroke:#333,stroke-width:2px;
     classDef signalr fill:#pink,stroke:#333,stroke-width:2px;
 
-
     class FE_Auth,FE_AdminDashboard,FE_DoctorFeatures,FE_StudentFeatures,FE_Shared,FE_Services,FE_SignalR_Client frontend;
     class API_Controllers,API_Hubs,API_Middlewares,API_Extensions,Auth_Service,Profile_Service,Project_Service,Team_Service,Task_Service,Evaluation_Service,Notification_Service,Email_Service,Token_Service,Core_Entities,Core_DTOs,Core_Interfaces,Repo_UnitOfWork,Repo_Generic,Repo_Specific,Repo_DbContext,Repo_Identity backend;
     class DB database;
     class SMTP external;
     class Browser_Admin,Browser_Doctor,Browser_Student userdevice;
     class API_Hubs,FE_SignalR_Client signalr;
-
 ```
 
 **Explanation of the Diagram and Architecture:**
