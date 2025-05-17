@@ -1502,3 +1502,424 @@ Here's a step-by-step breakdown of the grading module:
 (Provided in the previous section - a high-level overview of the entire flow)
 
 This detailed breakdown should give a good understanding of how the grading module is implemented and how users interact with it.
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ERD
+Okay, let's map out the database structure for your Grading Management System.
+
+**I. Entities and Their Relationships:**
+
+Here's a list of the primary entities and how they relate to each other, based on your provided code (especially the `DbContext` and entity configuration classes):
+
+1.  **`AppUser` (Identity Table - AspNetUsers)**
+    *   **Attributes (Key ones):** `Id` (PK), `UserName`, `Email`, `PasswordHash`, `FullName`, `ProfilePicture`, `Specialty`
+    *   **Relationships:**
+        *   One-to-One with `Admin` (`Admin.AppUserId` -> `AppUser.Id`)
+        *   One-to-One with `Doctor` (`Doctor.AppUserId` -> `AppUser.Id`)
+        *   One-to-One with `Student` (`Student.AppUserId` -> `AppUser.Id`)
+        *   Many-to-Many with `AspNetRoles` (via `AspNetUserRoles` join table)
+
+2.  **`AspNetRoles` (Identity Table)**
+    *   **Attributes:** `Id` (PK), `Name`
+
+3.  **`Admin`**
+    *   **Attributes:** `Id` (PK), `AppUserId` (FK, Unique), `FullName`, `Email` (Unique), `EnrollmentDate`
+    *   **Relationships:**
+        *   One-to-One with `AppUser`
+        *   One-to-Many with `Notification` (`Notification.AdminId` -> `Admin.Id`)
+        *   One-to-Many with `Evaluation` (as `AdminEvaluatorId`, nullable)
+
+4.  **`Doctor`**
+    *   **Attributes:** `Id` (PK), `AppUserId` (FK, Unique), `FullName`, `Email` (Unique), `EnrollmentDate`
+    *   **Relationships:**
+        *   One-to-One with `AppUser`
+        *   One-to-Many with `DoctorProjectIdea` (`DoctorProjectIdea.DoctorId` -> `Doctor.Id`)
+        *   One-to-Many with `Team` (as Supervisor, `Team.SupervisorId` -> `Doctor.Id`, nullable)
+        *   One-to-Many with `TeamRequestDoctorProjectIdea` (`TeamRequestDoctorProjectIdea.DoctorId` -> `Doctor.Id`)
+        *   One-to-Many with `TaskItem` (as Supervisor, `TaskItem.SupervisorId` -> `Doctor.Id`)
+        *   One-to-Many with `CommitteeDoctorSchedule` (`CommitteeDoctorSchedule.DoctorId` -> `Doctor.Id`)
+        *   One-to-Many with `Evaluation` (as `DoctorEvaluatorId`, nullable)
+        *   Many-to-One with `FinalProjectIdea` (as Supervisor, `FinalProjectIdea.SupervisorId` -> `Doctor.Id`, nullable)
+
+5.  **`Student`**
+    *   **Attributes:** `Id` (PK), `AppUserId` (FK, Unique), `FullName`, `Email` (Unique), `Specialty`, `InTeam`, `EnrollmentDate`, `TeamId` (FK, Nullable), `LeaderOfTeamId` (FK, Nullable, conceptually points to `Team.Id` where this student is the leader)
+    *   **Relationships:**
+        *   One-to-One with `AppUser`
+        *   Many-to-One with `Team` (as team member, `Student.TeamId` -> `Team.Id`)
+        *   One-to-One with `Team` (as leader, `Team.LeaderId` -> `Student.Id` and `Student.LeaderOfTeamId` links back)
+        *   One-to-Many with `TeamProjectIdea` (as Leader, `TeamProjectIdea.LeaderId` -> `Student.Id`)
+        *   One-to-Many with `TeamRequestDoctorProjectIdea` (as Leader, `TeamRequestDoctorProjectIdea.LeaderId` -> `Student.Id`)
+        *   Many-to-Many with `TaskItem` (via `TaskMember` join table)
+        *   One-to-Many with `Evaluation` (as `StudentId`, nullable)
+        *   Many-to-Many with `Invitation` (as invited student or leader sending invite)
+
+6.  **`Team`**
+    *   **Attributes:** `Id` (PK), `Name` (Unique), `HasProject`, `Specialty`, `LeaderId` (FK, Unique, Nullable -> `Student.Id`), `SupervisorId` (FK, Nullable -> `Doctor.Id`)
+    *   **Relationships:**
+        *   One-to-One with `Student` (Leader)
+        *   One-to-Many with `Student` (Members)
+        *   Many-to-One with `Doctor` (Supervisor)
+        *   One-to-Many with `TeamProjectIdea` (`TeamProjectIdea.TeamId` -> `Team.Id`)
+        *   One-to-Many with `TeamRequestDoctorProjectIdea` (`TeamRequestDoctorProjectIdea.TeamId` -> `Team.Id`)
+        *   One-to-One with `FinalProjectIdea` (`FinalProjectIdea.TeamId` -> `Team.Id`)
+        *   One-to-Many with `Invitation` (`Invitation.TeamId` -> `Team.Id`)
+        *   One-to-Many with `TaskItem` (`TaskItem.TeamId` -> `Team.Id`)
+        *   One-to-Many with `TaskMember` (`TaskMember.TeamId` -> `Team.Id`)
+        *   One-to-Many with `Schedule` (`Schedule.TeamId` -> `Team.Id`)
+        *   One-to-Many with `Evaluation` (as `TeamId`, nullable)
+        *   Many-to-Many with `Criteria` (conceptually, though not directly linked in schema; association is via `Schedule` & `Specialty`)
+
+7.  **`DoctorProjectIdea`**
+    *   **Attributes:** `Id` (PK), `Name` (Unique), `Description`, `SubmissionDate`, `Status`, `Taken`, `DoctorId` (FK -> `Doctor.Id`)
+    *   **Relationships:**
+        *   Many-to-One with `Doctor`
+        *   One-to-Many with `TeamRequestDoctorProjectIdea`
+
+8.  **`TeamProjectIdea`**
+    *   **Attributes:** `Id` (PK), `Name` (Unique), `Description`, `SubmissionDate`, `Status`, `TeamId` (FK, Nullable -> `Team.Id`), `LeaderId` (FK, Nullable -> `Student.Id`)
+    *   **Relationships:**
+        *   Many-to-One with `Team`
+        *   Many-to-One with `Student` (Leader)
+        *   One-to-One with `FinalProjectIdea` (nullable, `FinalProjectIdea.TeamProjectIdeaId` -> `TeamProjectIdea.Id`)
+
+9.  **`TeamRequestDoctorProjectIdea`** (Join table with attributes)
+    *   **Attributes:** `Id` (PK), `Status`, `RequestedDate`, `TeamId` (FK), `LeaderId` (FK), `DoctorId` (FK), `DoctorProjectIdeaId` (FK)
+    *   **Relationships:**
+        *   Many-to-One with `Team`
+        *   Many-to-One with `Student` (Leader)
+        *   Many-to-One with `Doctor`
+        *   Many-to-One with `DoctorProjectIdea`
+        *   One-to-One with `FinalProjectIdea` (nullable, `FinalProjectIdea.TeamRequestDoctorProjectIdeaId` -> `TeamRequestDoctorProjectIdea.Id`)
+
+10. **`FinalProjectIdea`**
+    *   **Attributes:** `ProjectId` (PK, *Not auto-generated*), `ProjectName`, `ProjectDescription`, `TeamRequestDoctorProjectIdeaId` (FK, Nullable), `TeamProjectIdeaId` (FK, Nullable), `SupervisorId` (FK, Nullable -> `Doctor.Id`), `TeamId` (FK, Unique, Nullable -> `Team.Id`), `PostedBy`
+    *   **Relationships:**
+        *   One-to-One with `Team`
+        *   Many-to-One with `Doctor` (Supervisor)
+        *   One-to-One with `TeamProjectIdea` (Nullable)
+        *   One-to-One with `TeamRequestDoctorProjectIdea` (Nullable)
+
+11. **`Invitation`** (Join table with attributes)
+    *   **Attributes:** `Id` (PK), `TeamId` (FK, Nullable), `LeaderId` (FK, Nullable -> `Student.Id`), `StudentId` (FK, Nullable -> `Student.Id`), `Status`, `SentDate`, `RespondedDate`
+    *   **Relationships:**
+        *   Many-to-One with `Team`
+        *   Many-to-One with `Student` (Leader)
+        *   Many-to-One with `Student` (Invited Student)
+
+12. **`TaskItem`**
+    *   **Attributes:** `Id` (PK), `Name`, `Description`, `Deadline`, `StartTime`, `Status`, `SupervisorId` (FK -> `Doctor.Id`), `TeamId` (FK -> `Team.Id`)
+    *   **Relationships:**
+        *   Many-to-One with `Doctor` (Supervisor)
+        *   Many-to-One with `Team`
+        *   One-to-Many with `TaskMember`
+
+13. **`TaskMember`** (Join table with attributes)
+    *   **Attributes:** `Id` (PK), `TaskId` (FK), `StudentId` (FK), `TeamId` (FK), `Status`, `CreatedAt`, `FinishedAt`
+    *   **Relationships:**
+        *   Many-to-One with `TaskItem`
+        *   Many-to-One with `Student`
+        *   Many-to-One with `Team`
+
+14. **`AcademicAppointment`**
+    *   **Attributes:** `Id` (PK), `Year`, `FirstTermStart`, `FirstTermEnd`, `SecondTermStart`, `SecondTermEnd`, `Status`, `CreatedAt`, `LastUpdatedAt`
+    *   **Relationships:**
+        *   One-to-Many with `Criteria`
+        *   One-to-Many with `Schedule` (nullable FK on `Schedule`)
+
+15. **`Criteria`**
+    *   **Attributes:** `Id` (PK), `Name`, `Description`, `MaxGrade`, `Evaluator`, `GivenTo`, `Specialty`, `Year`, `Term`, `IsActive`, `CreatedAt`, `LastUpdatedAt`, `AcademicAppointmentId` (FK)
+    *   **Relationships:**
+        *   Many-to-One with `AcademicAppointment`
+        *   Many-to-Many with `Schedule` (via `CriteriaSchedule` join table)
+        *   One-to-Many with `Evaluation`
+
+16. **`Schedule`**
+    *   **Attributes:** `Id` (PK), `ScheduleDate`, `CreatedAt`, `LastUpdatedAt`, `IsActive`, `Status`, `TeamId` (FK, Nullable -> `Team.Id`), `AcademicAppointmentId` (FK, Nullable -> `AcademicAppointment.Id`)
+    *   **Relationships:**
+        *   Many-to-One with `Team`
+        *   Many-to-One with `AcademicAppointment`
+        *   One-to-Many with `CommitteeDoctorSchedule`
+        *   Many-to-Many with `Criteria` (via `CriteriaSchedule` join table)
+        *   One-to-Many with `Evaluation`
+
+17. **`CommitteeDoctorSchedule`** (Join table with attributes)
+    *   **Attributes:** `Id` (PK), `ScheduleId` (FK, Nullable), `DoctorId` (FK, Nullable), `DoctorRole`, `HasCompletedEvaluation`
+    *   **Relationships:**
+        *   Many-to-One with `Schedule`
+        *   Many-to-One with `Doctor`
+
+18. **`Evaluation`**
+    *   **Attributes:** `Id` (PK), `ScheduleId` (FK, Nullable), `CriteriaId` (FK, Nullable), `DoctorEvaluatorId` (FK, Nullable -> `Doctor.Id`), `AdminEvaluatorId` (FK, Nullable -> `Admin.Id`), `EvaluatorRole`, `StudentId` (FK, Nullable -> `Student.Id`), `TeamId` (FK, Nullable -> `Team.Id`), `Grade`, `EvaluationDate`, `LastUpdatedAt`
+    *   **Relationships:**
+        *   Many-to-One with `Schedule`
+        *   Many-to-One with `Criteria`
+        *   Many-to-One with `Doctor` (Evaluator)
+        *   Many-to-One with `Admin` (Evaluator)
+        *   Many-to-One with `Student` (Evaluated)
+        *   Many-to-One with `Team` (Evaluated)
+
+19. **`CriteriaSchedule`** (Join table with attributes)
+    *   **Attributes:** `Id` (PK), `CriteriaId` (FK), `ScheduleId` (FK), `MaxGrade`
+    *   **Relationships:**
+        *   Many-to-One with `Criteria`
+        *   Many-to-One with `Schedule`
+
+20. **`Notification`**
+    *   **Attributes:** `Id` (PK), `Title`, `Description`, `Role`, `IsRead`, `SentAt`, `AdminId` (FK, Nullable -> `Admin.Id`)
+    *   **Relationships:**
+        *   Many-to-One with `Admin`
+
+21. **`TemporaryUser`** (Used during registration flow)
+    *   **Attributes:** `Id` (PK), `FullName`, `Email`, `PasswordHash`, `CreatedAt`, `ProfilePicture`, `Specialty`
+
+22. **`UserOtp`** (Used during registration flow)
+    *   **Attributes:** `Id` (PK), `Email`, `OtpCode`, `ExpiryTime`
+
+**II. Mermaid ERD:**
+
+```mermaid
+erDiagram
+    AppUser {
+        string Id PK
+        string UserName
+        string Email
+        string FullName
+        string ProfilePicture
+        string Specialty
+    }
+    AspNetRoles {
+        string Id PK
+        string Name
+    }
+    Admin {
+        int Id PK
+        string AppUserId FK "Unique"
+        string FullName
+        string Email "Unique"
+    }
+    Doctor {
+        int Id PK
+        string AppUserId FK "Unique"
+        string FullName
+        string Email "Unique"
+    }
+    Student {
+        int Id PK
+        string AppUserId FK "Unique"
+        string FullName
+        string Email "Unique"
+        string Specialty
+        int TeamId FK "Nullable"
+        int LeaderOfTeamId FK "Nullable"
+    }
+    Team {
+        int Id PK
+        string Name "Unique"
+        bool HasProject
+        string Specialty
+        int LeaderId FK "Unique, Nullable"
+        int SupervisorId FK "Nullable"
+    }
+    DoctorProjectIdea {
+        int Id PK
+        string Name "Unique"
+        string Description
+        string Status
+        int DoctorId FK
+        bool Taken
+    }
+    TeamProjectIdea {
+        int Id PK
+        string Name "Unique"
+        string Description
+        string Status
+        int TeamId FK "Nullable"
+        int LeaderId FK "Nullable"
+    }
+    TeamRequestDoctorProjectIdea {
+        int Id PK
+        string Status
+        int TeamId FK
+        int LeaderId FK
+        int DoctorId FK
+        int DoctorProjectIdeaId FK
+    }
+    FinalProjectIdea {
+        int ProjectId PK "Not Auto-Gen"
+        string ProjectName
+        string ProjectDescription
+        int TeamRequestDoctorProjectIdeaId FK "Nullable"
+        int TeamProjectIdeaId FK "Nullable"
+        int SupervisorId FK "Nullable"
+        int TeamId FK "Unique, Nullable"
+        string PostedBy
+    }
+    Invitation {
+        int Id PK
+        int TeamId FK "Nullable"
+        int LeaderId FK "Nullable"
+        int StudentId FK "Nullable"
+        string Status
+    }
+    TaskItem {
+        int Id PK
+        string Name
+        string Description
+        datetime Deadline
+        string Status
+        int SupervisorId FK
+        int TeamId FK
+    }
+    TaskMember {
+        int Id PK
+        int TaskId FK
+        int StudentId FK
+        int TeamId FK
+        string Status
+    }
+    AcademicAppointment {
+        int Id PK
+        string Year
+        datetime FirstTermStart
+        datetime FirstTermEnd
+        datetime SecondTermStart
+        datetime SecondTermEnd
+        string Status
+    }
+    Criteria {
+        int Id PK
+        string Name
+        string Description
+        int MaxGrade
+        string Evaluator
+        string GivenTo
+        string Specialty
+        int AcademicAppointmentId FK
+    }
+    Schedule {
+        int Id PK
+        datetime ScheduleDate
+        string Status
+        int TeamId FK "Nullable"
+        int AcademicAppointmentId FK "Nullable"
+    }
+    CommitteeDoctorSchedule {
+        int Id PK
+        int ScheduleId FK "Nullable"
+        int DoctorId FK "Nullable"
+        string DoctorRole
+        bool HasCompletedEvaluation
+    }
+    Evaluation {
+        int Id PK
+        int ScheduleId FK "Nullable"
+        int CriteriaId FK "Nullable"
+        int DoctorEvaluatorId FK "Nullable"
+        int AdminEvaluatorId FK "Nullable"
+        string EvaluatorRole
+        int StudentId FK "Nullable"
+        int TeamId FK "Nullable"
+        double Grade
+    }
+    CriteriaSchedule {
+        int Id PK
+        int CriteriaId FK
+        int ScheduleId FK
+        int MaxGrade
+    }
+    Notification {
+        int Id PK
+        string Title
+        string Description
+        string Role
+        int AdminId FK "Nullable"
+    }
+    TemporaryUser {
+        int Id PK
+        string Email
+        string FullName
+    }
+    UserOtp {
+        int Id PK
+        string Email
+        string OtpCode
+    }
+
+    AppUser ||--o| Admin : "has"
+    AppUser ||--o| Doctor : "has"
+    AppUser ||--o| Student : "has"
+    AppUser }o--|{ AspNetUserRoles : "has"
+    AspNetRoles }o--|{ AspNetUserRoles : "defines"
+
+    Admin ||--|{ Notification : "sends"
+    Admin }o--|{ Evaluation : "evaluates (Admin)"
+
+    Doctor ||--|{ DoctorProjectIdea : "proposes"
+    Doctor }o--|{ Team : "supervises"
+    Doctor ||--|{ TeamRequestDoctorProjectIdea : "is_target_of_request_for"
+    Doctor ||--|{ TaskItem : "assigns"
+    Doctor ||--|{ CommitteeDoctorSchedule : "is_member_of"
+    Doctor }o--|{ Evaluation : "evaluates (Doctor)"
+    Doctor }o--|| FinalProjectIdea : "supervises (Final)"
+
+    Student }o--|| Team : "leads (as Leader)"
+    Student }o--|{ Team : "is_member_of (as Member)"
+    Student ||--|{ TeamProjectIdea : "proposes (as Leader)"
+    Student ||--|{ TeamRequestDoctorProjectIdea : "requests (as Leader)"
+    Student ||--|{ TaskMember : "assigned_to"
+    Student }o--|{ Evaluation : "is_evaluated"
+    Student ||--|{ Invitation : "receives_or_sends"
+
+    Team ||--|{ TeamProjectIdea : "has_idea_from"
+    Team ||--|{ TeamRequestDoctorProjectIdea : "requests_idea_for"
+    Team ||--o| FinalProjectIdea : "has_final_idea"
+    Team ||--|{ Invitation : "sends_invite_for"
+    Team ||--|{ TaskItem : "has_task"
+    Team ||--|{ TaskMember : "has_task_member_in"
+    Team }o--|{ Schedule : "is_scheduled_for"
+    Team }o--|{ Evaluation : "is_evaluated_as"
+
+    DoctorProjectIdea ||--|{ TeamRequestDoctorProjectIdea : "is_requested_via"
+    DoctorProjectIdea }o--o| FinalProjectIdea : "can_become (via request)"
+    TeamProjectIdea }o--o| FinalProjectIdea : "can_become"
+
+    TaskItem ||--|{ TaskMember : "consists_of"
+
+    AcademicAppointment ||--|{ Criteria : "defines_for"
+    AcademicAppointment }o--|{ Schedule : "governs_timing_of"
+
+    Criteria ||--|{ CriteriaSchedule : "is_part_of"
+    Criteria ||--|{ Evaluation : "is_basis_for"
+
+    Schedule ||--|{ CommitteeDoctorSchedule : "has_committee_for"
+    Schedule ||--|{ CriteriaSchedule : "includes_criteria_for"
+    Schedule ||--|{ Evaluation : "is_context_for"
+
+```
+
+**Notes on the ERD:**
+
+*   **Identity Tables:** `AspNetUserRoles` is the explicit join table for `AppUser` and `AspNetRoles`.
+*   **Clarity vs. Detail:** For very complex relationships (like the one involving `FinalProjectIdea` sourcing its ID from other project idea tables), the ERD shows the FKs, but the exact logic of how `ProjectId` is populated isn't fully captured by lines alone.
+*   **Nullable Foreign Keys:** Indicated by `FK "Nullable"`.
+*   **Unique Constraints:** Indicated by `"Unique"` where applicable on non-PK fields.
+*   **Cardinality:**
+    *   `||--o|`: One-to-One (zero or one on the `o` side)
+    *   `||--|{`: One-to-Many (many on the `{` side)
+    *   `}o--|{`: Many-to-Many (implicitly, usually via a join table, or directly if attributes are on the line)
+    *   `}o--||`: Many-to-One
+*   **Conceptual vs. Strict:** Some relationships like `Team` to `Criteria` are conceptual (a team doing a project in a specialty will be graded on criteria for that specialty) but not direct FKs. The link is through `Schedule` and `Specialty` matching. The ERD focuses on direct FK relationships primarily.
+*   `TemporaryUser` and `UserOtp` are included for completeness of the system but are more related to the user onboarding process than the core grading data flow once users are active.
+
+This ERD should provide a solid overview of your database structure. Given the size, it's best viewed in a tool that can render Mermaid or by copying it into a Mermaid live editor.
