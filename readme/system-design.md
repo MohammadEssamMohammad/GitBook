@@ -16,14 +16,20 @@ Database: A SQL Server database stores all persistent data, accessed via Entity 
 
 Real-time Communication: SignalR is used for real-time features, primarily for notifications.
 
-graph TD\
-A\[Users (Admin, Doctor, Student)] -->|HTTPS| B(Angular Frontend)\
-B -->|REST API Calls (HTTPS/JWT)| C(.NET Core Backend API)\
-C -->|Entity Framework Core| D\[SQL Server Database]\
-C -->|SignalR| E(Notification Hub)\
+graph TD
+\
+A\[Users (Admin, Doctor, Student)] -->|HTTPS| B(Angular Frontend)
+\
+B -->|REST API Calls (HTTPS/JWT)| C(.NET Core Backend API)
+\
+C -->|Entity Framework Core| D\[SQL Server Database]
+\
+C -->|SignalR| E(Notification Hub)
+\
 E -->|WebSocket/Long Polling| B
 
-Technologies Used\
+Technologies Used
+\
 Backend
 
 .NET 8 / ASP.NET Core: Framework for building the Web API.
@@ -170,45 +176,83 @@ sequenceDiagram
     end
 ```
 
-2. Project Idea Submission & Review Flow (Simplified)   \
-   graph LR   \
-   subgraph Student/Doctor   \
-   A\[Submit Project Idea via Frontend]   \
-   end   \
-   subgraph Admin/Doctor (Reviewer)   \
-   B\[Review Idea via Frontend]   \
-   end   \
-   A --> C{Backend API}   \
-   C -->|Store Pending (DoctorProjectIdea/TeamProjectIdea)| D\[Database]   \
-   D -->|Fetch for Review| B   \
-   B -->|Approve/Reject via API| C   \
-   C -->|Update Status in DB, Create FinalProjectIdea if approved| D   \
-   C -->|Send Notification| E\[Frontend/User via SignalR]   \
-   IGNORE\_WHEN\_COPYING\_START   \
-   content\_copy   \
-   download   \
-   Use code with caution.   \
-   Mermaid   \
+2. Project Idea Submission & Review Flow (Simplified)
+   \
+   graph LR
+   \
+   subgraph Student/Doctor
+   \
+   A\[Submit Project Idea via Frontend]
+   \
+   end
+   \
+   subgraph Admin/Doctor (Reviewer)
+   \
+   B\[Review Idea via Frontend]
+   \
+   end
+   \
+   A --> C{Backend API}
+   \
+   C -->|Store Pending (DoctorProjectIdea/TeamProjectIdea)| D\[Database]
+   \
+   D -->|Fetch for Review| B
+   \
+   B -->|Approve/Reject via API| C
+   \
+   C -->|Update Status in DB, Create FinalProjectIdea if approved| D
+   \
+   C -->|Send Notification| E\[Frontend/User via SignalR]
+   \
+   IGNORE\_WHEN\_COPYING\_START
+   \
+   content\_copy
+   \
+   download
+   \
+   Use code with caution.
+   \
+   Mermaid
+   \
    IGNORE\_WHEN\_COPYING\_END
-3. Evaluation Data Flow   \
-   graph TD   \
-   Admin-->|Create Schedule via Frontend|BackendAPI   \
-   BackendAPI-->|Store Schedule|Database   \
-   Doctor/Admin-->|Fetch Teams & Criteria for Evaluation via Frontend|BackendAPI   \
-   BackendAPI-->|Retrieve Data|Database   \
-   BackendAPI-->|Return Data|Doctor/Admin   \
-   Doctor/Admin-->|Submit Grades via Frontend|BackendAPI   \
-   BackendAPI-->|Store Evaluation Records|Database   \
-   BackendAPI-->|Update Schedule Status|Database   \
-   Student-->|View Grades via Frontend|BackendAPI   \
-   BackendAPI-->|Calculate & Retrieve Grades|Database   \
-   BackendAPI-->|Return Grades|Student   \
-   IGNORE\_WHEN\_COPYING\_START   \
-   content\_copy   \
-   download   \
-   Use code with caution.   \
-   Mermaid   \
-   IGNORE\_WHEN\_COPYING\_END   \
+3. Evaluation Data Flow
+   \
+   graph TD
+   \
+   Admin-->|Create Schedule via Frontend|BackendAPI
+   \
+   BackendAPI-->|Store Schedule|Database
+   \
+   Doctor/Admin-->|Fetch Teams & Criteria for Evaluation via Frontend|BackendAPI
+   \
+   BackendAPI-->|Retrieve Data|Database
+   \
+   BackendAPI-->|Return Data|Doctor/Admin
+   \
+   Doctor/Admin-->|Submit Grades via Frontend|BackendAPI
+   \
+   BackendAPI-->|Store Evaluation Records|Database
+   \
+   BackendAPI-->|Update Schedule Status|Database
+   \
+   Student-->|View Grades via Frontend|BackendAPI
+   \
+   BackendAPI-->|Calculate & Retrieve Grades|Database
+   \
+   BackendAPI-->|Return Grades|Student
+   \
+   IGNORE\_WHEN\_COPYING\_START
+   \
+   content\_copy
+   \
+   download
+   \
+   Use code with caution.
+   \
+   Mermaid
+   \
+   IGNORE\_WHEN\_COPYING\_END
+   \
    Key Modules
 
 The system can be broadly divided into the following logical modules:
@@ -306,3 +350,20 @@ DTOs for API communication.
 Custom ApiResponse for consistent API responses.
 
 Global exception handling.
+
+
+some changes happenened
+archetecture:
+```mermaid
+architecture-beta
+    group api(cloud)[API]
+
+    service db(database)[Database] in api
+    service disk1(disk)[Storage] in api
+    service disk2(disk)[Storage] in api
+    service server(server)[Server] in api
+
+    db:L -- R:server
+    disk1:T -- B:server
+    disk2:T -- B:db
+```
