@@ -2114,3 +2114,144 @@ graph TD
     *   The Core Layer ideally has no dependencies on other layers (it's the heart of the application). This aligns with the Dependency Inversion Principle.
 
 This architecture promotes separation of concerns, testability (especially for the Service and Core layers), and maintainability. The use of interfaces and dependency injection allows for flexibility and easier changes in the future.
+
+
+
+
+
+
+
+
+
+# Architecture
+You're right to be persistent! Mermaid can be quite finicky with syntax, especially in complex diagrams or specific renderers. The error "got 'PS'" near the subgraph definition line indicates the parser is encountering an unexpected token sequence.
+
+Let's try a version with even more simplified labels for the main subgraphs, removing any characters that might be problematic (like hyphens in "SPA" or "ASP.NET Core" if they were part of the ID, or even too many words in the label if the renderer is restrictive).
+
+**Revised High-Level Architectural Diagram (Simplified Labels):**
+
+```mermaid
+graph TD
+    subgraph UserDevices [User Devices]
+        Browser_Admin[Admin Browser]
+        Browser_Doctor[Doctor Browser]
+        Browser_Student[Student Browser]
+    end
+
+    subgraph FrontendApp [Frontend Angular SPA]
+        FE_Auth[Authentication Components]
+        FE_AdminDashboard[Admin Dashboard Components]
+        FE_DoctorFeatures[Doctor Feature Components]
+        FE_StudentFeatures[Student Feature Components]
+        FE_Shared[Shared UI Components]
+        FE_Services[Angular Services]
+        FE_SignalR_Client[SignalR Client]
+    end
+
+    subgraph BackendApp [Backend ASPNETCore]
+        subgraph APILayer [API Layer]
+            API_Controllers[API Controllers]
+            API_Hubs[SignalR Hubs]
+            API_Middlewares[Middlewares]
+            API_Extensions[Extensions]
+        end
+
+        subgraph ServiceLayer [Service Layer]
+            Auth_Service[AuthenticationService]
+            Profile_Service[UserProfileService]
+            Project_Service[Project Logic]
+            Team_Service[Team Logic]
+            Task_Service[TaskService]
+            Evaluation_Service[Evaluation Logic]
+            Notification_Service[Notification Logic]
+            Email_Service[EmailService]
+            Token_Service[TokenService]
+        end
+
+        subgraph CoreLayer [Core Layer]
+            Core_Entities[Entities]
+            Core_DTOs[DTOs]
+            Core_Interfaces[Interfaces]
+        end
+
+        subgraph RepositoryLayer [Repository Layer]
+            Repo_UnitOfWork[UnitOfWork]
+            Repo_Generic[GenericRepository]
+            Repo_Specific[Specific Repositories]
+            Repo_DbContext[DbContext]
+            Repo_Identity[Identity SeedData]
+        end
+    end
+
+    subgraph ExternalServices [External Services]
+        DB[(SQL Server Database)]
+        SMTP[SMTP Server]
+    end
+
+    %% Frontend to Backend API Communication
+    Browser_Admin --> FE_AdminDashboard
+    Browser_Doctor --> FE_DoctorFeatures
+    Browser_Student --> FE_StudentFeatures
+
+    FE_Auth --> FE_Services
+    FE_AdminDashboard --> FE_Services
+    FE_DoctorFeatures --> FE_Services
+    FE_StudentFeatures --> FE_Services
+    FE_Shared --> FE_AdminDashboard
+    FE_Shared --> FE_DoctorFeatures
+    FE_Shared --> FE_StudentFeatures
+
+    FE_Services -->|HTTP REST API| API_Controllers
+    FE_SignalR_Client <-->|WebSocket SignalR| API_Hubs
+
+    %% Backend Layer Dependencies
+    API_Controllers --> ServiceLayer
+    API_Controllers --> Core_DTOs
+    API_Hubs --> ServiceLayer
+    API_Hubs --> Core_DTOs
+
+    ServiceLayer --> Core_Interfaces
+    ServiceLayer --> Repo_UnitOfWork
+    ServiceLayer --> Email_Service
+    ServiceLayer --> Token_Service
+
+    Repo_UnitOfWork --> Repo_DbContext
+    Repo_Generic --> Repo_DbContext
+    Repo_Specific --> Repo_DbContext
+    Repo_DbContext --> DB
+    Repo_Identity --> DB
+
+    %% Core Layer is central
+    ServiceLayer --> Core_Entities
+    RepositoryLayer --> Core_Entities
+    RepositoryLayer --> Core_Interfaces
+
+
+    %% External Service Interactions
+    Email_Service --> SMTP
+
+    classDef frontend fill:#lightgreen,stroke:#333,stroke-width:2px;
+    classDef backend fill:#lightblue,stroke:#333,stroke-width:2px;
+    classDef database fill:#orange,stroke:#333,stroke-width:2px;
+    classDef external fill:#lightgrey,stroke:#333,stroke-width:2px;
+    classDef userdevice fill:#wheat,stroke:#333,stroke-width:2px;
+    classDef signalr fill:#pink,stroke:#333,stroke-width:2px;
+
+    class FE_Auth,FE_AdminDashboard,FE_DoctorFeatures,FE_StudentFeatures,FE_Shared,FE_Services,FE_SignalR_Client frontend;
+    class API_Controllers,API_Hubs,API_Middlewares,API_Extensions,Auth_Service,Profile_Service,Project_Service,Team_Service,Task_Service,Evaluation_Service,Notification_Service,Email_Service,Token_Service,Core_Entities,Core_DTOs,Core_Interfaces,Repo_UnitOfWork,Repo_Generic,Repo_Specific,Repo_DbContext,Repo_Identity backend;
+    class DB database;
+    class SMTP external;
+    class Browser_Admin,Browser_Doctor,Browser_Student userdevice;
+    class API_Hubs,FE_SignalR_Client signalr;
+```
+
+**Key changes in this simplified label version:**
+
+*   `subgraph Frontend_Application [Frontend Application (Angular - SPA)]` changed to `subgraph FrontendApp [Frontend Angular SPA]`
+*   `subgraph Backend_Application [Backend Application (ASP.NET Core)]` changed to `subgraph BackendApp [Backend ASPNETCore]`
+*   `subgraph Repository_Layer [Repository/Data Access Layer]` changed to `subgraph RepositoryLayer [Repository Layer]`
+*   Edge label `|WebSocket (SignalR)|` changed to `|WebSocket SignalR|` (removing parentheses).
+
+The core structure and connections remain the same. The goal here is to eliminate any characters in the subgraph labels that the specific Mermaid parser might be struggling with.
+
+If this still fails, the issue is likely deeper within the specific Mermaid rendering environment you're using, or there might be an invisible character issue in the pasted code. In such cases, testing the diagram incrementally in a dedicated Mermaid live editor (like the one on mermaid.live) is the best way to pinpoint the exact problematic line.
