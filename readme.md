@@ -2492,12 +2492,15 @@ graph TD
 
 
 # super simplified
-I apologize for the continued trouble with the Mermaid diagrams. It seems the renderer you're using is particularly strict or has specific parsing quirks. The "PS" error usually points to issues with node labels (text within brackets []), especially if they contain parentheses, colons, or other special characters that aren't handled well. The "NODE_STRING" error in the use case diagram might be due to how actors are declared or the labels for use cases.
+I apologize for the continued trouble with the Mermaid diagrams. It seems the renderer you're using is particularly strict or has specific parsing quirks. The "PS" error usually points to issues with node labels (text within brackets `[]`), especially if they contain parentheses, colons, or other special characters that aren't handled well. The "NODE_STRING" error in the use case diagram might be due to how actors are declared or the labels for use cases.
 
-Let's try ultra-minimalist labels for the problematic diagrams, removing almost all descriptive text from within the node brackets and relying on the node ID for clarity where possible.
+Let's try **ultra-minimalist labels** for the problematic diagrams, removing almost all descriptive text from within the node brackets and relying on the node ID for clarity where possible.
 
-3. Component Diagram (High-Level Backend Structure - Ultra Simplified)
+---
 
+**3. Component Diagram (High-Level Backend Structure - Ultra Simplified)**
+
+```mermaid
 graph TD
     subgraph BackendAppComponents [Backend Application]
         APILayer[API_Layer]
@@ -2528,14 +2531,15 @@ graph TD
     class RepositoryLayer layer_repo;
     class CoreLayer layer_core;
     class DatabaseComponent external_db;
+```
+**Changes Made:**
+*   Node labels like `APILayer[API Layer (Controllers, Hubs)]` are now just `APILayer[API_Layer]`. Underscores are generally safer than spaces or special characters within node IDs if the label itself is causing issues. Here, I'm using it in the label text for clarity.
 
+---
 
-Changes Made:
+**4. Use Case Diagram (Ultra Simplified)**
 
-Node labels like APILayer[API Layer (Controllers, Hubs)] are now just APILayer[API_Layer]. Underscores are generally safer than spaces or special characters within node IDs if the label itself is causing issues. Here, I'm using it in the label text for clarity.
-
-4. Use Case Diagram (Ultra Simplified)
-
+```mermaid
 graph LR
     actor Admin
     actor Doctor
@@ -2597,23 +2601,17 @@ graph LR
     Admin --> UC_Notifications_View
     Doctor --> UC_Notifications_View
     Student --> UC_Notifications_View
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Mermaid
-IGNORE_WHEN_COPYING_END
+```
+**Changes Made:**
+*   Each `actor` declaration is on its own line (though Mermaid typically allows them on one).
+*   Removed colons and descriptive text from within the use case node labels (e.g., `UC1[Admin: Manage Configuration]` became `UC1[Manage_Sys_Config]`). The actor linking makes the "Admin:" part redundant.
+*   Used underscores instead of spaces in the labels for safety.
 
-Changes Made:
+---
 
-Each actor declaration is on its own line (though Mermaid typically allows them on one).
+**5. Deployment Diagram (Ultra Simplified)**
 
-Removed colons and descriptive text from within the use case node labels (e.g., UC1[Admin: Manage Configuration] became UC1[Manage_Sys_Config]). The actor linking makes the "Admin:" part redundant.
-
-Used underscores instead of spaces in the labels for safety.
-
-5. Deployment Diagram (Ultra Simplified)
-
+```mermaid
 graph TD
     subgraph UserDeviceNode [User Device]
         BrowserApp[Browser_Angular_SPA]
@@ -2644,32 +2642,22 @@ graph TD
     class WebServerNode,DbServerNode,EmailInfraNode node;
     class BackendAppArtifact,GradingDbArtifact artifact;
     class BrowserApp user_node;
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Mermaid
-IGNORE_WHEN_COPYING_END
+```
+**Changes Made:**
+*   Node labels like `WebServerNode[Web Server (e.g., IIS)]` are now just `WebServerNode[Web_Server]`.
+*   Removed parentheses and "e.g." from labels.
 
-Changes Made:
+---
 
-Node labels like WebServerNode[Web Server (e.g., IIS)] are now just WebServerNode[Web_Server].
+**Testing Suggestion:**
 
-Removed parentheses and "e.g." from labels.
-
-Testing Suggestion:
-
-Please try these one by one in your rendering environment. If one still fails, it would be very helpful to know which one and if the error message changes.
+Please try these one by one in your rendering environment. If one still fails, it would be very helpful to know *which one* and if the error message changes.
 
 The most common culprits for the "PS" error in Mermaid, when the overall structure is correct, are:
-
-Parentheses () within node labels [].
-
-Colons : within node labels [].
-
-Special characters that aren't part of standard Markdown or basic text within labels.
-
-Line breaks (<br>) within labels if the renderer doesn't support them well.
+1.  **Parentheses `()` within node labels `[]`.**
+2.  **Colons `:` within node labels `[]`.**
+3.  **Special characters that aren't part of standard Markdown or basic text within labels.**
+4.  **Line breaks (`<br>`) within labels** if the renderer doesn't support them well.
 
 The "NODE_STRING" error is often about how nodes/actors are defined or linked before the parser expects it. Putting actor declarations on separate lines is a good first step to debug that for the Use Case diagram.
 
