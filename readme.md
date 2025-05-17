@@ -1,88 +1,59 @@
 <
 ---PAGE: introduction.md---
-
-Introduction
+# Introduction
 
 Welcome to the documentation for the Graduation Projects Grading System. This system is a comprehensive backend solution designed to manage and streamline the processes involved in graduation project grading, including user management, project idea submissions, team formations, task assignments, scheduling, evaluations, and real-time notifications.
 
 This documentation provides a detailed overview of the system's design, architecture, technologies used, data flow, and key components.
 
-Purpose
+## Purpose
 
 The primary purpose of this system is to:
+*   Facilitate the management of academic years and terms.
+*   Allow students, doctors, and administrators to interact with the system based on their roles.
+*   Manage the submission and approval process for project ideas.
+*   Enable team formation and management.
+*   Support the creation and assignment of tasks to students.
+*   Schedule and manage evaluation sessions.
+*   Provide a flexible criteria-based evaluation mechanism.
+*   Deliver real-time notifications to users.
+*   Securely manage user profiles and authentication.
 
-Facilitate the management of academic years and terms.
-
-Allow students, doctors, and administrators to interact with the system based on their roles.
-
-Manage the submission and approval process for project ideas.
-
-Enable team formation and management.
-
-Support the creation and assignment of tasks to students.
-
-Schedule and manage evaluation sessions.
-
-Provide a flexible criteria-based evaluation mechanism.
-
-Deliver real-time notifications to users.
-
-Securely manage user profiles and authentication.
-
-Target Audience
+## Target Audience
 
 This documentation is intended for:
-
-Developers: To understand the system's architecture, codebase, and how to extend or maintain it.
-
-System Administrators: To understand system setup, configuration, and deployment.
-
-Project Managers/Stakeholders: To get an overview of the system's capabilities and design.
+*   **Developers**: To understand the system's architecture, codebase, and how to extend or maintain it.
+*   **System Administrators**: To understand system setup, configuration, and deployment.
+*   **Project Managers/Stakeholders**: To get an overview of the system's capabilities and design.
 
 ---PAGE: architecture.md---
-
-System Architecture
+# System Architecture
 
 The Graduation Projects Grading System is built using a layered architecture, promoting separation of concerns, maintainability, and scalability.
 
-High-Level Architecture
+## High-Level Architecture
 
 The system follows a clean, n-tier architectural pattern:
 
-API Layer (Presentation): Handles incoming HTTP requests, authentication, authorization, request validation, and responses. It interacts with the Service Layer.
+1.  **API Layer (Presentation)**: Handles incoming HTTP requests, authentication, authorization, request validation, and responses. It interacts with the Service Layer.
+    *   Located in `GradingManagementSystem.APIs` project.
+    *   Key components: Controllers, SignalR Hubs, Middlewares, DTOs (for request/response shaping).
+2.  **Service Layer (Business Logic)**: Contains the core business logic, orchestrates operations, and interacts with the Repository Layer.
+    *   Located in `GradingManagementSystem.Service` project.
+    *   Key components: Service classes (e.g., `AuthenticationService`, `UserProfileService`).
+3.  **Repository Layer (Data Access)**: Abstracts the data persistence mechanism. It defines interfaces for data access and provides concrete implementations.
+    *   Located in `GradingManagementSystem.Repository` project.
+    *   Key components: Repository interfaces (in Core), Repository implementations, Entity Framework Core `DbContext`, Unit of Work pattern.
+4.  **Core Layer (Domain)**: Contains the domain entities, DTOs (Data Transfer Objects), custom responses, and interfaces for services and repositories. This layer is central and has no dependencies on other layers.
+    *   Located in `GradingManagementSystem.Core` project.
+    *   Key components: Entities, DTOs, Repository and Service interfaces, Enum definitions.
+5.  **Infrastructure/Shared Services**:
+    *   **Database**: SQL Server is used for data persistence, managed via Entity Framework Core.
+    *   **Identity**: ASP.NET Core Identity is used for user authentication and authorization.
+    *   **Real-time Communication**: SignalR is used for sending real-time notifications.
+    *   **Email Service**: For sending emails (e.g., OTP, password reset).
 
-Located in GradingManagementSystem.APIs project.
-
-Key components: Controllers, SignalR Hubs, Middlewares, DTOs (for request/response shaping).
-
-Service Layer (Business Logic): Contains the core business logic, orchestrates operations, and interacts with the Repository Layer.
-
-Located in GradingManagementSystem.Service project.
-
-Key components: Service classes (e.g., AuthenticationService, UserProfileService).
-
-Repository Layer (Data Access): Abstracts the data persistence mechanism. It defines interfaces for data access and provides concrete implementations.
-
-Located in GradingManagementSystem.Repository project.
-
-Key components: Repository interfaces (in Core), Repository implementations, Entity Framework Core DbContext, Unit of Work pattern.
-
-Core Layer (Domain): Contains the domain entities, DTOs (Data Transfer Objects), custom responses, and interfaces for services and repositories. This layer is central and has no dependencies on other layers.
-
-Located in GradingManagementSystem.Core project.
-
-Key components: Entities, DTOs, Repository and Service interfaces, Enum definitions.
-
-Infrastructure/Shared Services:
-
-Database: SQL Server is used for data persistence, managed via Entity Framework Core.
-
-Identity: ASP.NET Core Identity is used for user authentication and authorization.
-
-Real-time Communication: SignalR is used for sending real-time notifications.
-
-Email Service: For sending emails (e.g., OTP, password reset).
-
+```mermaid
 graph TD
     Client[Client Applications <br/> (e.g., Web/Mobile Frontend)] -->|HTTP/S, WebSocket| API_Layer[API Layer <br/> (ASP.NET Core MVC/API, SignalR)]
     API_Layer -->|Calls| Service_Layer[Service Layer <br/> (Business Logic)]
@@ -120,103 +91,81 @@ graph TD
         Database
         ASPNET_Identity
     end
+```
 
-Key Components
+## Key Components
 
-Program.cs: The main entry point for the API application. It configures services (Dependency Injection), the HTTP request pipeline (middleware), and initializes the application.
-
-Controllers (e.g., AuthenticationController, ProjectsController): Handle API requests for specific resources, validate input, call service methods, and return appropriate HTTP responses.
-
-Services (e.g., IAuthenticationService, ITaskService): Encapsulate business logic. They are injected into controllers.
-
-Repositories (e.g., IGenericRepository<>, IProjectRepository): Provide an abstraction layer over data storage. Implemented using Entity Framework Core.
-
-UnitOfWork (IUnitOfWork): Manages database transactions and coordinates changes across multiple repositories.
-
-Entities (e.g., Student, Team, ProjectIdea): Represent the domain objects and map to database tables.
-
-DTOs (Data Transfer Objects): Used to transfer data between layers, especially between the API and clients, and between services and controllers.
-
-GradingManagementSystemDbContext: The Entity Framework Core DbContext class that manages database sessions, change tracking, and persistence.
-
-NotificationHub: A SignalR hub responsible for real-time communication, primarily for sending notifications to connected clients based on their roles.
-
-ASP.NET Core Identity (AppUser, UserManager, SignInManager, RoleManager): Handles user registration, login, roles, and security.
-
-Middleware (ExceptionMiddleware): Custom middleware for global exception handling, ensuring consistent error responses.
-
-Extensions (ApplicationServicesExtension, IdentityServicesExtension): Static classes used to organize service registration and configuration in Program.cs.
+*   **`Program.cs`**: The main entry point for the API application. It configures services (Dependency Injection), the HTTP request pipeline (middleware), and initializes the application.
+*   **Controllers (e.g., `AuthenticationController`, `ProjectsController`)**: Handle API requests for specific resources, validate input, call service methods, and return appropriate HTTP responses.
+*   **Services (e.g., `IAuthenticationService`, `ITaskService`)**: Encapsulate business logic. They are injected into controllers.
+*   **Repositories (e.g., `IGenericRepository<>`, `IProjectRepository`)**: Provide an abstraction layer over data storage. Implemented using Entity Framework Core.
+*   **`UnitOfWork` (`IUnitOfWork`)**: Manages database transactions and coordinates changes across multiple repositories.
+*   **Entities (e.g., `Student`, `Team`, `ProjectIdea`)**: Represent the domain objects and map to database tables.
+*   **DTOs (Data Transfer Objects)**: Used to transfer data between layers, especially between the API and clients, and between services and controllers.
+*   **`GradingManagementSystemDbContext`**: The Entity Framework Core DbContext class that manages database sessions, change tracking, and persistence.
+*   **`NotificationHub`**: A SignalR hub responsible for real-time communication, primarily for sending notifications to connected clients based on their roles.
+*   **ASP.NET Core Identity (`AppUser`, `UserManager`, `SignInManager`, `RoleManager`)**: Handles user registration, login, roles, and security.
+*   **Middleware (`ExceptionMiddleware`)**: Custom middleware for global exception handling, ensuring consistent error responses.
+*   **Extensions (`ApplicationServicesExtension`, `IdentityServicesExtension`)**: Static classes used to organize service registration and configuration in `Program.cs`.
 
 This layered approach ensures that each part of the system has a distinct responsibility, making the application easier to develop, test, and maintain.
 
 ---PAGE: technologies.md---
-
-Technologies Used
+# Technologies Used
 
 The Graduation Projects Grading System leverages a modern .NET technology stack and common software development patterns.
 
-Core Framework & Platform
+## Core Framework & Platform
 
-.NET 8: The primary framework for building the application. (Identified from .NETCoreApp,Version=v8.0.AssemblyAttributes.cs)
+*   **.NET 8**: The primary framework for building the application. (Identified from `.NETCoreApp,Version=v8.0.AssemblyAttributes.cs`)
+*   **ASP.NET Core 8**: Used for building the web API, handling HTTP requests, routing, and middleware.
 
-ASP.NET Core 8: Used for building the web API, handling HTTP requests, routing, and middleware.
+## Data Access
 
-Data Access
+*   **Entity Framework Core**: The Object-Relational Mapper (ORM) used for interacting with the database. It simplifies data access operations and database schema management. (Identified from `Microsoft.EntityFrameworkCore` namespace and `GradingManagementSystemDbContext`).
+*   **SQL Server**: The relational database management system used for storing application data. (Implied by `options.UseSqlServer` in `ApplicationServicesExtension.cs` and connection string name "MonsterConnection" or "DefaultConnection").
+*   **Repository Pattern**: Used to abstract data access logic, promoting testability and separation of concerns. (Identified by `IGenericRepository<>` and its implementations).
+*   **Unit of Work Pattern**: Used to manage transactions and ensure data consistency across multiple repository operations. (Identified by `IUnitOfWork` and its implementation).
 
-Entity Framework Core: The Object-Relational Mapper (ORM) used for interacting with the database. It simplifies data access operations and database schema management. (Identified from Microsoft.EntityFrameworkCore namespace and GradingManagementSystemDbContext).
+## Authentication & Authorization
 
-SQL Server: The relational database management system used for storing application data. (Implied by options.UseSqlServer in ApplicationServicesExtension.cs and connection string name "MonsterConnection" or "DefaultConnection").
+*   **ASP.NET Core Identity**: Provides a comprehensive membership system for managing users, passwords, roles, and claims. (Identified from `Microsoft.AspNetCore.Identity` namespace and `IdentityServicesExtension.cs`).
+*   **JSON Web Tokens (JWT)**: Used for stateless, token-based authentication. The system generates JWTs upon successful login, which clients then include in subsequent requests. (Identified from `AddJwtBearer` configuration in `IdentityServicesExtension.cs` and `ITokenService`).
 
-Repository Pattern: Used to abstract data access logic, promoting testability and separation of concerns. (Identified by IGenericRepository<> and its implementations).
+## Real-time Communication
 
-Unit of Work Pattern: Used to manage transactions and ensure data consistency across multiple repository operations. (Identified by IUnitOfWork and its implementation).
+*   **SignalR**: Used for enabling real-time, bi-directional communication between the server and clients, primarily for notifications. (Identified from `Microsoft.AspNetCore.SignalR` namespace, `NotificationHub.cs`, and `app.MapHub<NotificationHub>`).
 
-Authentication & Authorization
+## API & Development Tools
 
-ASP.NET Core Identity: Provides a comprehensive membership system for managing users, passwords, roles, and claims. (Identified from Microsoft.AspNetCore.Identity namespace and IdentityServicesExtension.cs).
+*   **Swagger (OpenAPI)**: Used for designing, building, documenting, and consuming RESTful APIs. The system integrates Swashbuckle to automatically generate Swagger UI. (Identified from `AddSwaggerGen` in `ApplicationServicesExtension.cs` and `app.UseSwagger()`).
+*   **Dependency Injection (DI)**: Heavily used throughout the ASP.NET Core application to manage dependencies and promote loose coupling. (Evident in `Program.cs` service configuration).
+*   **CORS (Cross-Origin Resource Sharing)**: Configured to allow requests from specified client origins (e.g., `http://localhost:4200`, `https://graduation-project-angular.vercel.app`). (Identified in `Program.cs`).
 
-JSON Web Tokens (JWT): Used for stateless, token-based authentication. The system generates JWTs upon successful login, which clients then include in subsequent requests. (Identified from AddJwtBearer configuration in IdentityServicesExtension.cs and ITokenService).
+## Email Communication
 
-Real-time Communication
+*   **SMTP**: Used for sending emails (e.g., OTP for email verification, password reset links). (Identified by `System.Net.Mail.SmtpClient` in `EmailService.cs` and email settings in configuration).
 
-SignalR: Used for enabling real-time, bi-directional communication between the server and clients, primarily for notifications. (Identified from Microsoft.AspNetCore.SignalR namespace, NotificationHub.cs, and app.MapHub<NotificationHub>).
+## Coding Patterns & Practices
 
-API & Development Tools
-
-Swagger (OpenAPI): Used for designing, building, documenting, and consuming RESTful APIs. The system integrates Swashbuckle to automatically generate Swagger UI. (Identified from AddSwaggerGen in ApplicationServicesExtension.cs and app.UseSwagger()).
-
-Dependency Injection (DI): Heavily used throughout the ASP.NET Core application to manage dependencies and promote loose coupling. (Evident in Program.cs service configuration).
-
-CORS (Cross-Origin Resource Sharing): Configured to allow requests from specified client origins (e.g., http://localhost:4200, https://graduation-project-angular.vercel.app). (Identified in Program.cs).
-
-Email Communication
-
-SMTP: Used for sending emails (e.g., OTP for email verification, password reset links). (Identified by System.Net.Mail.SmtpClient in EmailService.cs and email settings in configuration).
-
-Coding Patterns & Practices
-
-Layered Architecture: Separates concerns into API, Service, Repository, and Core layers.
-
-Async/Await: Extensively used for non-blocking I/O operations, improving application responsiveness and scalability.
-
-DTOs (Data Transfer Objects): Used for shaping data passed between layers and to/from clients.
-
-Custom Middleware: For tasks like global exception handling (ExceptionMiddleware.cs).
-
-Configuration Management: Utilizes ASP.NET Core's configuration system (e.g., IConfiguration).
+*   **Layered Architecture**: Separates concerns into API, Service, Repository, and Core layers.
+*   **Async/Await**: Extensively used for non-blocking I/O operations, improving application responsiveness and scalability.
+*   **DTOs (Data Transfer Objects)**: Used for shaping data passed between layers and to/from clients.
+*   **Custom Middleware**: For tasks like global exception handling (`ExceptionMiddleware.cs`).
+*   **Configuration Management**: Utilizes ASP.NET Core's configuration system (e.g., `IConfiguration`).
 
 This combination of technologies and patterns provides a robust, scalable, and maintainable foundation for the Graduation Projects Grading System.
 
 ---PAGE: data_flow.md---
-
-Data Flow
+# Data Flow
 
 This section describes the typical data flow for key operations within the Graduation Projects Grading System.
 
-1. Student Registration and Email Verification
+## 1. Student Registration and Email Verification
 
 This flow outlines how a new student registers and verifies their email.
 
+```mermaid
 sequenceDiagram
     participant Client as Client (Frontend)
     participant AuthCtrl as AuthenticationController
@@ -269,37 +218,24 @@ sequenceDiagram
         AuthService-->>-AuthCtrl: ApiResponse (Error: OTP invalid/expired)
     end
     AuthCtrl-->>-Client: HTTP Response
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Mermaid
-IGNORE_WHEN_COPYING_END
+```
 
-Steps:
+**Steps:**
+1.  **Student Initiates Registration**: Client sends student details (name, email, specialty, profile picture, password) to `AuthenticationController`.
+2.  **Temporary Storage & OTP**: `AuthenticationService` checks for existing users. If none, it stores student data in `TemporaryUsers` table, generates an OTP, stores it in `UserOtps` table with an expiry time, and sends the OTP via `EmailService`.
+3.  **Student Verifies OTP**: Client submits the received OTP to `AuthenticationController`.
+4.  **Account Creation**: `AuthenticationService` validates the OTP. If valid:
+    *   Creates an `AppUser` in ASP.NET Identity.
+    *   Assigns the "Student" role.
+    *   Creates a corresponding `Student` entity linked to the `AppUser`.
+    *   Deletes the `TemporaryUser` record and the used OTP.
+5.  Confirmation is sent to the client.
 
-Student Initiates Registration: Client sends student details (name, email, specialty, profile picture, password) to AuthenticationController.
-
-Temporary Storage & OTP: AuthenticationService checks for existing users. If none, it stores student data in TemporaryUsers table, generates an OTP, stores it in UserOtps table with an expiry time, and sends the OTP via EmailService.
-
-Student Verifies OTP: Client submits the received OTP to AuthenticationController.
-
-Account Creation: AuthenticationService validates the OTP. If valid:
-
-Creates an AppUser in ASP.NET Identity.
-
-Assigns the "Student" role.
-
-Creates a corresponding Student entity linked to the AppUser.
-
-Deletes the TemporaryUser record and the used OTP.
-
-Confirmation is sent to the client.
-
-2. User Login
+## 2. User Login
 
 This flow describes how a registered user logs into the system.
 
+```mermaid
 sequenceDiagram
     participant Client as Client (Frontend)
     participant AuthCtrl as AuthenticationController
@@ -326,29 +262,19 @@ sequenceDiagram
         AuthService-->>-AuthCtrl: ApiResponse (Error: Unauthorized)
     end
     AuthCtrl-->>-Client: HTTP Response (Token or Error)
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Mermaid
-IGNORE_WHEN_COPYING_END
+```
+**Steps:**
+1.  **Client Sends Credentials**: User provides email and password.
+2.  **Controller Receives**: `AuthenticationController` receives login request.
+3.  **Service Authenticates**: `AuthenticationService` uses `UserManager` to find the user by email and `SignInManager` to validate the password.
+4.  **Token Generation**: If credentials are valid, `TokenService` generates a JWT.
+5.  **Token Returned**: The JWT is returned to the client for use in subsequent authenticated requests.
 
-Steps:
-
-Client Sends Credentials: User provides email and password.
-
-Controller Receives: AuthenticationController receives login request.
-
-Service Authenticates: AuthenticationService uses UserManager to find the user by email and SignInManager to validate the password.
-
-Token Generation: If credentials are valid, TokenService generates a JWT.
-
-Token Returned: The JWT is returned to the client for use in subsequent authenticated requests.
-
-3. Admin Sends Notification
+## 3. Admin Sends Notification
 
 This flow shows how an administrator sends a notification to a group of users.
 
+```mermaid
 sequenceDiagram
     participant AdminClient as Admin Client (Frontend)
     participant NotifCtrl as NotificationsController
@@ -370,33 +296,22 @@ sequenceDiagram
     SignalR_Server-->>TargetClients: Push "ReceiveNotification" event
     NotifHubCtx-->>-NotifCtrl:
     NotifCtrl-->>-AdminClient: ApiResponse (Notification sent successfully)
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Mermaid
-IGNORE_WHEN_COPYING_END
+```
 
-Steps:
+**Steps:**
+1.  **Admin Initiates**: Admin client sends notification details (title, description, target role) to `NotificationsController`.
+2.  **Controller Processes**:
+    *   Validates input and retrieves the Admin's ID (from JWT claims).
+    *   Creates a `Notification` entity.
+    *   Saves the notification to the database via `IUnitOfWork`.
+3.  **SignalR Broadcast**: The controller uses `IHubContext<NotificationHub>` to send the notification message to the specified client group (`Students`, `Doctors`, or `All`).
+4.  **Clients Receive**: Connected clients belonging to the target group receive the notification in real-time via `NotificationHub`.
 
-Admin Initiates: Admin client sends notification details (title, description, target role) to NotificationsController.
-
-Controller Processes:
-
-Validates input and retrieves the Admin's ID (from JWT claims).
-
-Creates a Notification entity.
-
-Saves the notification to the database via IUnitOfWork.
-
-SignalR Broadcast: The controller uses IHubContext<NotificationHub> to send the notification message to the specified client group (Students, Doctors, or All).
-
-Clients Receive: Connected clients belonging to the target group receive the notification in real-time via NotificationHub.
-
-4. Doctor Submits Evaluation Grades
+## 4. Doctor Submits Evaluation Grades
 
 This flow illustrates how a doctor submits grades for a team or student.
 
+```mermaid
 sequenceDiagram
     participant DoctorClient as Doctor Client (Frontend)
     participant EvalCtrl as EvaluationsController
@@ -423,47 +338,32 @@ sequenceDiagram
     EvalCtrl->>+UnitOfWork: CompleteAsync() (Saves all changes)
     UnitOfWork-->>-EvalCtrl: Changes saved
     EvalCtrl-->>-DoctorClient: ApiResponse (Grades submitted successfully)
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Mermaid
-IGNORE_WHEN_COPYING_END
+```
 
-Steps:
-
-Doctor Submits Grades: Doctor client sends evaluation data (schedule ID, team ID, optional student ID, list of criteria grades) to EvaluationsController.
-
-Controller Authorization & Validation:
-
-Authenticates the doctor and determines their role (Supervisor/Examiner) based on the schedule and JWT claims.
-
-Validates that the submitted grades are within the MaxGrade for each criterion.
-
-Data Persistence:
-
-For each grade item, a new Evaluation entity is created.
-
-These entities are added to the GradingManagementSystemDbContext.
-
-Update Evaluation Status (for Doctors): If the evaluator is a Doctor, the corresponding CommitteeDoctorSchedule record is updated to mark HasCompletedEvaluation as true.
-
-Save Changes: IUnitOfWork.CompleteAsync() (or _dbContext.SaveChangesAsync()) is called to persist all changes to the database.
-
-Confirmation is sent to the client.
+**Steps:**
+1.  **Doctor Submits Grades**: Doctor client sends evaluation data (schedule ID, team ID, optional student ID, list of criteria grades) to `EvaluationsController`.
+2.  **Controller Authorization & Validation**:
+    *   Authenticates the doctor and determines their role (Supervisor/Examiner) based on the schedule and JWT claims.
+    *   Validates that the submitted grades are within the `MaxGrade` for each criterion.
+3.  **Data Persistence**:
+    *   For each grade item, a new `Evaluation` entity is created.
+    *   These entities are added to the `GradingManagementSystemDbContext`.
+4.  **Update Evaluation Status (for Doctors)**: If the evaluator is a Doctor, the corresponding `CommitteeDoctorSchedule` record is updated to mark `HasCompletedEvaluation` as true.
+5.  **Save Changes**: `IUnitOfWork.CompleteAsync()` (or `_dbContext.SaveChangesAsync()`) is called to persist all changes to the database.
+6.  Confirmation is sent to the client.
 
 These flows represent common interactions. Other flows, such as project idea submission, team creation, and task management, follow similar patterns involving controllers, services, repositories, and the database.
 
 ---PAGE: uml_diagrams.md---
-
-UML Diagrams
+# UML Diagrams
 
 This section provides various UML diagrams to visualize the system's structure, relationships, and interactions.
 
-1. Component Diagram
+## 1. Component Diagram
 
 This diagram shows the high-level components of the system and their dependencies.
 
+```mermaid
 graph LR
     subgraph "Client Tier"
         UserInterface[Web/Mobile Frontend]
@@ -494,16 +394,13 @@ graph LR
     RepositoryLayer --> CoreLayer
     RepositoryLayer --> Database
     IdentityService --> Database
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Mermaid
-IGNORE_WHEN_COPYING_END
-2. Simplified Class Diagram (Key Entities)
+```
+
+## 2. Simplified Class Diagram (Key Entities)
 
 This diagram illustrates the main entities and their relationships. For brevity, not all attributes or methods are shown.
 
+```mermaid
 classDiagram
     direction LR
 
@@ -721,26 +618,23 @@ classDiagram
     Student "1" -- "0..*" TaskMember : assigned
 
     Admin "1" -- "0..*" Notification : sends
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Mermaid
-IGNORE_WHEN_COPYING_END
-3. Sequence Diagram: Student Registration
+```
+
+## 3. Sequence Diagram: Student Registration
 
 This diagram shows the sequence of interactions for a new student registration.
 (Refer to Data Flow section for the Mermaid diagram, as it's already detailed there.)
 
-4. Sequence Diagram: Admin Sends Notification
+## 4. Sequence Diagram: Admin Sends Notification
 
 This diagram shows the sequence of interactions when an admin sends a notification.
 (Refer to Data Flow section for the Mermaid diagram, as it's already detailed there.)
 
-5. Use Case Diagram
+## 5. Use Case Diagram
 
 This diagram illustrates the main functionalities (use cases) available to different actors (Admin, Doctor, Student).
 
+```mermaid
 actor Admin
 actor Doctor
 actor Student
@@ -792,361 +686,223 @@ rectangle "Graduation Project Grading System" {
     (Evaluate Teams/Students in Schedules) ..> Doctor
     (Supervise Teams) ..> Doctor
 }
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Mermaid
-IGNORE_WHEN_COPYING_END
+```
 
 These diagrams provide a visual understanding of the system's components, entity relationships, and key interaction flows. For more detailed sequence diagrams of other specific flows, refer to the Data Flow section or analyze the respective controller and service interactions.
 
 ---PAGE: database_schema.md---
-
-Database Schema Overview
+# Database Schema Overview
 
 The database schema is designed using Entity Framework Core, employing a code-first approach. Key entities and their relationships define the structure of the SQL Server database.
 
-Core Entities and Relationships
-
-The following are the primary entities and their significant relationships. For a visual representation, please see the Simplified Class Diagram in the UML Diagrams section.
-
-AppUser (Identity):
-
-Stores core user information for authentication (username, email, password hash).
-
-Base for specific user roles.
-
-Relationships:
-
-One-to-One with Admin, Doctor, or Student.
-
-Admin:
-
-Represents an administrator user.
-
-Linked to AppUser.
-
-Relationships:
-
-One-to-Many with Notification (Admin sends notifications).
-
-One-to-Many with Evaluation (Admin can be an evaluator).
-
-Doctor:
-
-Represents a doctor/faculty member.
-
-Linked to AppUser.
-
-Relationships:
-
-One-to-Many with DoctorProjectIdea (Doctor submits project ideas).
-
-One-to-Many with Team (as Supervisor).
-
-One-to-Many with TaskItem (as Supervisor assigning tasks).
-
-Many-to-Many with Schedule via CommitteeDoctorSchedule (as Examiner/Supervisor).
-
-One-to-Many with Evaluation (Doctor can be an evaluator).
-
-Student:
-
-Represents a student user.
-
-Linked to AppUser.
-
-Relationships:
-
-Many-to-One with Team (Student is a member of a team).
-
-One-to-One with Team (Student can be a leader of a team).
-
-One-to-Many with TeamProjectIdea (as Leader submitting project ideas).
-
-Many-to-Many with TaskItem via TaskMember.
-
-One-to-Many with Evaluation (Student receives evaluations).
-
-Team:
-
-Represents a student team.
-
-Relationships:
-
-One-to-Many with Student (Team has members).
-
-One-to-One with Student (Team has a leader).
-
-Many-to-One with Doctor (Team is supervised by a doctor).
-
-One-to-Many with TeamProjectIdea.
-
-One-to-One with FinalProjectIdea.
-
-One-to-Many with Schedule.
-
-One-to-Many with TaskItem.
-
-One-to-Many with Invitation (Team sends invitations).
-
-Project Ideas:
-
-DoctorProjectIdea: Submitted by a Doctor.
-
-TeamProjectIdea: Submitted by a Student (Team Leader) for their Team.
-
-FinalProjectIdea: The approved project idea for a Team, linked to either a DoctorProjectIdea or TeamProjectIdea and a Supervisor (Doctor).
-
-AcademicAppointment:
-
-Defines academic years and term dates (e.g., "2023-2024", First Term Start/End).
-
-Relationships:
-
-One-to-Many with Criteria.
-
-One-to-Many with Schedule.
-
-Criteria:
-
-Defines evaluation criteria (name, description, max grade, evaluator type, target).
-
-Linked to an AcademicAppointment.
-
-Relationships:
-
-One-to-Many with Evaluation.
-
-Many-to-Many with Schedule via CriteriaSchedule.
-
-Schedule:
-
-Defines evaluation/presentation schedules for teams.
-
-Linked to a Team and an AcademicAppointment.
-
-Relationships:
-
-One-to-Many with CommitteeDoctorSchedule (linking Doctors as examiners/supervisors).
-
-One-to-Many with Evaluation.
-
-Many-to-Many with Criteria via CriteriaSchedule.
-
-Evaluation:
-
-Stores grades given during evaluations.
-
-Linked to Schedule, Criteria, an evaluator (Admin or Doctor), and a recipient (Student or Team).
-
-Tasks:
-
-TaskItem: A task assigned by a Doctor (Supervisor) to a Team.
-
-TaskMember: Links a TaskItem to specific Students within the team, tracking their status.
-
-Notification:
-
-Stores notifications sent by Admins to specific roles (Students, Doctors, All).
-
-Invitation:
-
-Represents an invitation from a Team (Leader) to a Student to join the team.
-
-Auxiliary Entities:
-
-UserOtp: Stores OTPs for email verification, linked to user email.
-
-TemporaryUser: Stores student registration data before email verification.
-
-CommitteeDoctorSchedule: Join table for Schedule and Doctor, defining the doctor's role in the schedule.
-
-CriteriaSchedule: Join table for Criteria and Schedule.
-
-Database Context
-
-GradingManagementSystemDbContext.cs: This class, inheriting from IdentityDbContext<AppUser, IdentityRole, string>, is the Entity Framework Core context. It defines DbSet properties for each entity, representing tables in the database. Configuration for entities (like relationships, constraints) is applied in the OnModelCreating method, often by loading configurations from separate classes (e.g., AdminConfigurations, TeamConfigurations).
-
-Migrations
-
-Database schema changes are managed using EF Core Migrations. The GradingManagementSystem.Repository/Data/Migrations folder contains migration files that track changes to the model and allow updating the database schema accordingly.
+## Core Entities and Relationships
+
+The following are the primary entities and their significant relationships. For a visual representation, please see the Simplified Class Diagram in the [UML Diagrams](uml_diagrams.md) section.
+
+*   **`AppUser` (Identity)**:
+    *   Stores core user information for authentication (username, email, password hash).
+    *   Base for specific user roles.
+    *   Relationships:
+        *   One-to-One with `Admin`, `Doctor`, or `Student`.
+
+*   **`Admin`**:
+    *   Represents an administrator user.
+    *   Linked to `AppUser`.
+    *   Relationships:
+        *   One-to-Many with `Notification` (Admin sends notifications).
+        *   One-to-Many with `Evaluation` (Admin can be an evaluator).
+
+*   **`Doctor`**:
+    *   Represents a doctor/faculty member.
+    *   Linked to `AppUser`.
+    *   Relationships:
+        *   One-to-Many with `DoctorProjectIdea` (Doctor submits project ideas).
+        *   One-to-Many with `Team` (as Supervisor).
+        *   One-to-Many with `TaskItem` (as Supervisor assigning tasks).
+        *   Many-to-Many with `Schedule` via `CommitteeDoctorSchedule` (as Examiner/Supervisor).
+        *   One-to-Many with `Evaluation` (Doctor can be an evaluator).
+
+*   **`Student`**:
+    *   Represents a student user.
+    *   Linked to `AppUser`.
+    *   Relationships:
+        *   Many-to-One with `Team` (Student is a member of a team).
+        *   One-to-One with `Team` (Student can be a leader of a team).
+        *   One-to-Many with `TeamProjectIdea` (as Leader submitting project ideas).
+        *   Many-to-Many with `TaskItem` via `TaskMember`.
+        *   One-to-Many with `Evaluation` (Student receives evaluations).
+
+*   **`Team`**:
+    *   Represents a student team.
+    *   Relationships:
+        *   One-to-Many with `Student` (Team has members).
+        *   One-to-One with `Student` (Team has a leader).
+        *   Many-to-One with `Doctor` (Team is supervised by a doctor).
+        *   One-to-Many with `TeamProjectIdea`.
+        *   One-to-One with `FinalProjectIdea`.
+        *   One-to-Many with `Schedule`.
+        *   One-to-Many with `TaskItem`.
+        *   One-to-Many with `Invitation` (Team sends invitations).
+
+*   **Project Ideas**:
+    *   `DoctorProjectIdea`: Submitted by a `Doctor`.
+    *   `TeamProjectIdea`: Submitted by a `Student` (Team Leader) for their `Team`.
+    *   `FinalProjectIdea`: The approved project idea for a `Team`, linked to either a `DoctorProjectIdea` or `TeamProjectIdea` and a `Supervisor` (`Doctor`).
+
+*   **`AcademicAppointment`**:
+    *   Defines academic years and term dates (e.g., "2023-2024", First Term Start/End).
+    *   Relationships:
+        *   One-to-Many with `Criteria`.
+        *   One-to-Many with `Schedule`.
+
+*   **`Criteria`**:
+    *   Defines evaluation criteria (name, description, max grade, evaluator type, target).
+    *   Linked to an `AcademicAppointment`.
+    *   Relationships:
+        *   One-to-Many with `Evaluation`.
+        *   Many-to-Many with `Schedule` via `CriteriaSchedule`.
+
+*   **`Schedule`**:
+    *   Defines evaluation/presentation schedules for teams.
+    *   Linked to a `Team` and an `AcademicAppointment`.
+    *   Relationships:
+        *   One-to-Many with `CommitteeDoctorSchedule` (linking Doctors as examiners/supervisors).
+        *   One-to-Many with `Evaluation`.
+        *   Many-to-Many with `Criteria` via `CriteriaSchedule`.
+
+*   **`Evaluation`**:
+    *   Stores grades given during evaluations.
+    *   Linked to `Schedule`, `Criteria`, an evaluator (`Admin` or `Doctor`), and a recipient (`Student` or `Team`).
+
+*   **Tasks**:
+    *   `TaskItem`: A task assigned by a `Doctor` (Supervisor) to a `Team`.
+    *   `TaskMember`: Links a `TaskItem` to specific `Student`s within the team, tracking their status.
+
+*   **`Notification`**:
+    *   Stores notifications sent by `Admin`s to specific roles (`Students`, `Doctors`, `All`).
+
+*   **`Invitation`**:
+    *   Represents an invitation from a `Team` (Leader) to a `Student` to join the team.
+
+*   **Auxiliary Entities**:
+    *   `UserOtp`: Stores OTPs for email verification, linked to user email.
+    *   `TemporaryUser`: Stores student registration data before email verification.
+    *   `CommitteeDoctorSchedule`: Join table for `Schedule` and `Doctor`, defining the doctor's role in the schedule.
+    *   `CriteriaSchedule`: Join table for `Criteria` and `Schedule`.
+
+## Database Context
+
+*   **`GradingManagementSystemDbContext.cs`**: This class, inheriting from `IdentityDbContext<AppUser, IdentityRole, string>`, is the Entity Framework Core context. It defines `DbSet` properties for each entity, representing tables in the database. Configuration for entities (like relationships, constraints) is applied in the `OnModelCreating` method, often by loading configurations from separate classes (e.g., `AdminConfigurations`, `TeamConfigurations`).
+
+## Migrations
+
+*   Database schema changes are managed using EF Core Migrations. The `GradingManagementSystem.Repository/Data/Migrations` folder contains migration files that track changes to the model and allow updating the database schema accordingly.
 
 This schema facilitates the complex interactions and data storage requirements of the Graduation Projects Grading System.
 
 ---PAGE: system_setup_and_services.md---
+# System Setup and Services
 
-System Setup and Services
+This page details the setup process in `Program.cs` and the core services configured for the application.
 
-This page details the setup process in Program.cs and the core services configured for the application.
+## Application Startup (`Program.cs`)
 
-Application Startup (Program.cs)
+The `Program.cs` file is the entry point of the ASP.NET Core application. It's responsible for:
+1.  Creating a `WebApplicationBuilder`.
+2.  Configuring services for dependency injection.
+3.  Building the `WebApplication`.
+4.  Configuring the HTTP request pipeline (middleware).
+5.  Running the application.
 
-The Program.cs file is the entry point of the ASP.NET Core application. It's responsible for:
+### Service Configuration
 
-Creating a WebApplicationBuilder.
+Key services are registered in the `Main` method, primarily through extension methods:
 
-Configuring services for dependency injection.
+*   **`builder.Services.AddApplicationServices(builder.Configuration)`**: (Defined in `ApplicationServicesExtension.cs`)
+    *   **Database Context**: Registers `GradingManagementSystemDbContext` with SQL Server.
+        ```csharp
+        Services.AddDbContext<GradingManagementSystemDbContext>(options =>
+        {
+            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")); // Or "MonsterConnection"
+        });
+        ```
+    *   **Controllers & API Behavior**: Adds controller services and configures API behavior options, including custom handling for invalid model states to return a structured `ApiResponse`.
+    *   **API Explorer & Swagger**: Configures Swagger/OpenAPI for API documentation, including JWT bearer token authentication support in Swagger UI.
+    *   **Repositories**: Registers generic and specific repository implementations (e.g., `IGenericRepository<>`, `INotificationRepository`, `IProjectRepository`).
+        ```csharp
+        Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+        Services.AddScoped<INotificationRepository, NotificationRepository>();
+        // ... other repositories
+        ```
+    *   **Unit of Work**: Registers `IUnitOfWork`.
+        ```csharp
+        Services.AddScoped<IUnitOfWork, UnitOfWork>();
+        ```
+    *   **Business Services**: Registers application services (e.g., `IAuthenticationService`, `IEmailService`, `ITaskService`, `ITokenService`, `IUserProfileService`).
+        ```csharp
+        Services.AddScoped<IAuthenticationService, AuthenticationService>();
+        Services.AddScoped<IEmailService, EmailService>();
+        // ... other services
+        ```
+    *   **SignalR**: Adds SignalR services.
+        ```csharp
+        Services.AddSignalR();
+        ```
 
-Building the WebApplication.
+*   **`builder.Services.AddIdentityServices(builder.Configuration)`**: (Defined in `IdentityServicesExtension.cs`)
+    *   **ASP.NET Core Identity**: Configures IdentityCore for `AppUser` and `IdentityRole`, using `GradingManagementSystemDbContext` for storage.
+        ```csharp
+        Services.AddIdentityCore<AppUser>().AddRoles<IdentityRole>()
+            .AddEntityFrameworkStores<GradingManagementSystemDbContext>()
+            .AddSignInManager<SignInManager<AppUser>>()
+            .AddRoleManager<RoleManager<IdentityRole>>()
+            .AddDefaultTokenProviders();
+        ```
+    *   **Data Protection Token Provider**: Configures token lifespan (e.g., for password reset).
+    *   **JWT Authentication**: Configures JWT bearer authentication scheme with token validation parameters (issuer, audience, lifetime, signing key).
 
-Configuring the HTTP request pipeline (middleware).
-
-Running the application.
-
-Service Configuration
-
-Key services are registered in the Main method, primarily through extension methods:
-
-builder.Services.AddApplicationServices(builder.Configuration): (Defined in ApplicationServicesExtension.cs)
-
-Database Context: Registers GradingManagementSystemDbContext with SQL Server.
-
-Services.AddDbContext<GradingManagementSystemDbContext>(options =>
-{
-    options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")); // Or "MonsterConnection"
-});
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-C#
-IGNORE_WHEN_COPYING_END
-
-Controllers & API Behavior: Adds controller services and configures API behavior options, including custom handling for invalid model states to return a structured ApiResponse.
-
-API Explorer & Swagger: Configures Swagger/OpenAPI for API documentation, including JWT bearer token authentication support in Swagger UI.
-
-Repositories: Registers generic and specific repository implementations (e.g., IGenericRepository<>, INotificationRepository, IProjectRepository).
-
-Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-Services.AddScoped<INotificationRepository, NotificationRepository>();
-// ... other repositories
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-C#
-IGNORE_WHEN_COPYING_END
-
-Unit of Work: Registers IUnitOfWork.
-
-Services.AddScoped<IUnitOfWork, UnitOfWork>();
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-C#
-IGNORE_WHEN_COPYING_END
-
-Business Services: Registers application services (e.g., IAuthenticationService, IEmailService, ITaskService, ITokenService, IUserProfileService).
-
-Services.AddScoped<IAuthenticationService, AuthenticationService>();
-Services.AddScoped<IEmailService, EmailService>();
-// ... other services
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-C#
-IGNORE_WHEN_COPYING_END
-
-SignalR: Adds SignalR services.
-
-Services.AddSignalR();
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-C#
-IGNORE_WHEN_COPYING_END
-
-builder.Services.AddIdentityServices(builder.Configuration): (Defined in IdentityServicesExtension.cs)
-
-ASP.NET Core Identity: Configures IdentityCore for AppUser and IdentityRole, using GradingManagementSystemDbContext for storage.
-
-Services.AddIdentityCore<AppUser>().AddRoles<IdentityRole>()
-    .AddEntityFrameworkStores<GradingManagementSystemDbContext>()
-    .AddSignInManager<SignInManager<AppUser>>()
-    .AddRoleManager<RoleManager<IdentityRole>>()
-    .AddDefaultTokenProviders();
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-C#
-IGNORE_WHEN_COPYING_END
-
-Data Protection Token Provider: Configures token lifespan (e.g., for password reset).
-
-JWT Authentication: Configures JWT bearer authentication scheme with token validation parameters (issuer, audience, lifetime, signing key).
-
-CORS Configuration:
-
-Defines a CORS policy named "CorsPolicy" allowing specific origins (http://localhost:4200, https://graduation-project-angular.vercel.app), any header, any method, and credentials.
-
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("CorsPolicy", policy =>
+*   **CORS Configuration**:
+    *   Defines a CORS policy named "CorsPolicy" allowing specific origins (`http://localhost:4200`, `https://graduation-project-angular.vercel.app`), any header, any method, and credentials.
+    ```csharp
+    builder.Services.AddCors(options =>
     {
-        policy.WithOrigins("http://localhost:4200", "https://graduation-project-angular.vercel.app")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        options.AddPolicy("CorsPolicy", policy =>
+        {
+            policy.WithOrigins("http://localhost:4200", "https://graduation-project-angular.vercel.app")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        });
     });
-});
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-C#
-IGNORE_WHEN_COPYING_END
-Database Migration and Seeding
+    ```
 
-After building the app (var app = builder.Build();), the system attempts to:
+### Database Migration and Seeding
 
-Apply Database Migrations Automatically:
+After building the app (`var app = builder.Build();`), the system attempts to:
+1.  **Apply Database Migrations Automatically**:
+    ```csharp
+    var _dbContext = services.GetRequiredService<GradingManagementSystemDbContext>();
+    await _dbContext.Database.MigrateAsync();
+    ```
+2.  **Seed Initial Data**: Calls `SeedData.SeedRolesAndAdminUsersAsync` to create default roles ("Admin", "Doctor", "Student") and predefined admin users if they don't exist.
 
-var _dbContext = services.GetRequiredService<GradingManagementSystemDbContext>();
-await _dbContext.Database.MigrateAsync();
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-C#
-IGNORE_WHEN_COPYING_END
-
-Seed Initial Data: Calls SeedData.SeedRolesAndAdminUsersAsync to create default roles ("Admin", "Doctor", "Student") and predefined admin users if they don't exist.
-
-HTTP Request Pipeline Configuration (Middleware)
+### HTTP Request Pipeline Configuration (Middleware)
 
 The order of middleware registration is crucial:
 
-app.MapHub<NotificationHub>("/api/notificationHub"): Maps the SignalR NotificationHub to the specified endpoint.
+1.  **`app.MapHub<NotificationHub>("/api/notificationHub")`**: Maps the SignalR `NotificationHub` to the specified endpoint.
+2.  **`app.UseMiddleware<ExceptionMiddleware>()`**: Adds custom global exception handling.
+3.  **Swagger**:
+    *   `app.UseSwagger()`: Enables the Swagger JSON endpoint.
+    *   `app.UseSwaggerUI()`: Enables the Swagger UI.
+4.  **`app.UseHttpsRedirection()`**: Redirects HTTP requests to HTTPS.
+5.  **`app.UseStaticFiles()`**: Enables serving static files (e.g., profile pictures from `wwwroot`).
+6.  **`app.UseCors("CorsPolicy")`**: Applies the configured CORS policy.
+7.  **`app.UseRouting()`**: Adds route matching to the pipeline.
+8.  **`app.UseAuthentication()`**: Adds authentication middleware (validates JWTs).
+9.  **`app.UseAuthorization()`**: Adds authorization middleware (checks if authenticated users have required roles/policies).
+10. **`app.MapControllers()`**: Maps attribute-routed controllers.
 
-app.UseMiddleware<ExceptionMiddleware>(): Adds custom global exception handling.
-
-Swagger:
-
-app.UseSwagger(): Enables the Swagger JSON endpoint.
-
-app.UseSwaggerUI(): Enables the Swagger UI.
-
-app.UseHttpsRedirection(): Redirects HTTP requests to HTTPS.
-
-app.UseStaticFiles(): Enables serving static files (e.g., profile pictures from wwwroot).
-
-app.UseCors("CorsPolicy"): Applies the configured CORS policy.
-
-app.UseRouting(): Adds route matching to the pipeline.
-
-app.UseAuthentication(): Adds authentication middleware (validates JWTs).
-
-app.UseAuthorization(): Adds authorization middleware (checks if authenticated users have required roles/policies).
-
-app.MapControllers(): Maps attribute-routed controllers.
-
-Finally, app.Run() starts the application and listens for incoming HTTP requests.
+Finally, `app.Run()` starts the application and listens for incoming HTTP requests.
 
 This setup ensures that all necessary services are available via DI and the request pipeline is configured correctly to handle requests, authentication, routing, and real-time communication.

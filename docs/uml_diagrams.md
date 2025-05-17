@@ -1,11 +1,12 @@
-UML Diagrams
+# UML Diagrams
 
 This section provides various UML diagrams to visualize the system's structure, relationships, and interactions.
 
-1. Component Diagram
+## 1. Component Diagram
 
 This diagram shows the high-level components of the system and their dependencies.
 
+```mermaid
 graph LR
     subgraph "Client Tier"
         UserInterface[Web/Mobile Frontend]
@@ -36,16 +37,13 @@ graph LR
     RepositoryLayer --> CoreLayer
     RepositoryLayer --> Database
     IdentityService --> Database
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Mermaid
-IGNORE_WHEN_COPYING_END
-2. Simplified Class Diagram (Key Entities)
+```
+
+## 2. Simplified Class Diagram (Key Entities)
 
 This diagram illustrates the main entities and their relationships. For brevity, not all attributes or methods are shown.
 
+```mermaid
 classDiagram
     direction LR
 
@@ -263,26 +261,23 @@ classDiagram
     Student "1" -- "0..*" TaskMember : assigned
 
     Admin "1" -- "0..*" Notification : sends
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Mermaid
-IGNORE_WHEN_COPYING_END
-3. Sequence Diagram: Student Registration
+```
+
+## 3. Sequence Diagram: Student Registration
 
 This diagram shows the sequence of interactions for a new student registration.
 (Refer to Data Flow section for the Mermaid diagram, as it's already detailed there.)
 
-4. Sequence Diagram: Admin Sends Notification
+## 4. Sequence Diagram: Admin Sends Notification
 
 This diagram shows the sequence of interactions when an admin sends a notification.
 (Refer to Data Flow section for the Mermaid diagram, as it's already detailed there.)
 
-5. Use Case Diagram
+## 5. Use Case Diagram
 
 This diagram illustrates the main functionalities (use cases) available to different actors (Admin, Doctor, Student).
 
+```mermaid
 actor Admin
 actor Doctor
 actor Student
@@ -334,12 +329,7 @@ rectangle "Graduation Project Grading System" {
     (Evaluate Teams/Students in Schedules) ..> Doctor
     (Supervise Teams) ..> Doctor
 }
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Mermaid
-IGNORE_WHEN_COPYING_END
+```
 
 These diagrams provide a visual understanding of the system's components, entity relationships, and key interaction flows. For more detailed sequence diagrams of other specific flows, refer to the Data Flow section or analyze the respective controller and service interactions.
 

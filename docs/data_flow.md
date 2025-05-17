@@ -1,11 +1,12 @@
-Data Flow
+# Data Flow
 
 This section describes the typical data flow for key operations within the Graduation Projects Grading System.
 
-1. Student Registration and Email Verification
+## 1. Student Registration and Email Verification
 
 This flow outlines how a new student registers and verifies their email.
 
+```mermaid
 sequenceDiagram
     participant Client as Client (Frontend)
     participant AuthCtrl as AuthenticationController
@@ -58,37 +59,24 @@ sequenceDiagram
         AuthService-->>-AuthCtrl: ApiResponse (Error: OTP invalid/expired)
     end
     AuthCtrl-->>-Client: HTTP Response
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Mermaid
-IGNORE_WHEN_COPYING_END
+```
 
-Steps:
+**Steps:**
+1.  **Student Initiates Registration**: Client sends student details (name, email, specialty, profile picture, password) to `AuthenticationController`.
+2.  **Temporary Storage & OTP**: `AuthenticationService` checks for existing users. If none, it stores student data in `TemporaryUsers` table, generates an OTP, stores it in `UserOtps` table with an expiry time, and sends the OTP via `EmailService`.
+3.  **Student Verifies OTP**: Client submits the received OTP to `AuthenticationController`.
+4.  **Account Creation**: `AuthenticationService` validates the OTP. If valid:
+    *   Creates an `AppUser` in ASP.NET Identity.
+    *   Assigns the "Student" role.
+    *   Creates a corresponding `Student` entity linked to the `AppUser`.
+    *   Deletes the `TemporaryUser` record and the used OTP.
+5.  Confirmation is sent to the client.
 
-Student Initiates Registration: Client sends student details (name, email, specialty, profile picture, password) to AuthenticationController.
-
-Temporary Storage & OTP: AuthenticationService checks for existing users. If none, it stores student data in TemporaryUsers table, generates an OTP, stores it in UserOtps table with an expiry time, and sends the OTP via EmailService.
-
-Student Verifies OTP: Client submits the received OTP to AuthenticationController.
-
-Account Creation: AuthenticationService validates the OTP. If valid:
-
-Creates an AppUser in ASP.NET Identity.
-
-Assigns the "Student" role.
-
-Creates a corresponding Student entity linked to the AppUser.
-
-Deletes the TemporaryUser record and the used OTP.
-
-Confirmation is sent to the client.
-
-2. User Login
+## 2. User Login
 
 This flow describes how a registered user logs into the system.
 
+```mermaid
 sequenceDiagram
     participant Client as Client (Frontend)
     participant AuthCtrl as AuthenticationController
@@ -115,29 +103,19 @@ sequenceDiagram
         AuthService-->>-AuthCtrl: ApiResponse (Error: Unauthorized)
     end
     AuthCtrl-->>-Client: HTTP Response (Token or Error)
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Mermaid
-IGNORE_WHEN_COPYING_END
+```
+**Steps:**
+1.  **Client Sends Credentials**: User provides email and password.
+2.  **Controller Receives**: `AuthenticationController` receives login request.
+3.  **Service Authenticates**: `AuthenticationService` uses `UserManager` to find the user by email and `SignInManager` to validate the password.
+4.  **Token Generation**: If credentials are valid, `TokenService` generates a JWT.
+5.  **Token Returned**: The JWT is returned to the client for use in subsequent authenticated requests.
 
-Steps:
-
-Client Sends Credentials: User provides email and password.
-
-Controller Receives: AuthenticationController receives login request.
-
-Service Authenticates: AuthenticationService uses UserManager to find the user by email and SignInManager to validate the password.
-
-Token Generation: If credentials are valid, TokenService generates a JWT.
-
-Token Returned: The JWT is returned to the client for use in subsequent authenticated requests.
-
-3. Admin Sends Notification
+## 3. Admin Sends Notification
 
 This flow shows how an administrator sends a notification to a group of users.
 
+```mermaid
 sequenceDiagram
     participant AdminClient as Admin Client (Frontend)
     participant NotifCtrl as NotificationsController
@@ -159,33 +137,22 @@ sequenceDiagram
     SignalR_Server-->>TargetClients: Push "ReceiveNotification" event
     NotifHubCtx-->>-NotifCtrl:
     NotifCtrl-->>-AdminClient: ApiResponse (Notification sent successfully)
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Mermaid
-IGNORE_WHEN_COPYING_END
+```
 
-Steps:
+**Steps:**
+1.  **Admin Initiates**: Admin client sends notification details (title, description, target role) to `NotificationsController`.
+2.  **Controller Processes**:
+    *   Validates input and retrieves the Admin's ID (from JWT claims).
+    *   Creates a `Notification` entity.
+    *   Saves the notification to the database via `IUnitOfWork`.
+3.  **SignalR Broadcast**: The controller uses `IHubContext<NotificationHub>` to send the notification message to the specified client group (`Students`, `Doctors`, or `All`).
+4.  **Clients Receive**: Connected clients belonging to the target group receive the notification in real-time via `NotificationHub`.
 
-Admin Initiates: Admin client sends notification details (title, description, target role) to NotificationsController.
-
-Controller Processes:
-
-Validates input and retrieves the Admin's ID (from JWT claims).
-
-Creates a Notification entity.
-
-Saves the notification to the database via IUnitOfWork.
-
-SignalR Broadcast: The controller uses IHubContext<NotificationHub> to send the notification message to the specified client group (Students, Doctors, or All).
-
-Clients Receive: Connected clients belonging to the target group receive the notification in real-time via NotificationHub.
-
-4. Doctor Submits Evaluation Grades
+## 4. Doctor Submits Evaluation Grades
 
 This flow illustrates how a doctor submits grades for a team or student.
 
+```mermaid
 sequenceDiagram
     participant DoctorClient as Doctor Client (Frontend)
     participant EvalCtrl as EvaluationsController
@@ -212,34 +179,19 @@ sequenceDiagram
     EvalCtrl->>+UnitOfWork: CompleteAsync() (Saves all changes)
     UnitOfWork-->>-EvalCtrl: Changes saved
     EvalCtrl-->>-DoctorClient: ApiResponse (Grades submitted successfully)
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Mermaid
-IGNORE_WHEN_COPYING_END
+```
 
-Steps:
-
-Doctor Submits Grades: Doctor client sends evaluation data (schedule ID, team ID, optional student ID, list of criteria grades) to EvaluationsController.
-
-Controller Authorization & Validation:
-
-Authenticates the doctor and determines their role (Supervisor/Examiner) based on the schedule and JWT claims.
-
-Validates that the submitted grades are within the MaxGrade for each criterion.
-
-Data Persistence:
-
-For each grade item, a new Evaluation entity is created.
-
-These entities are added to the GradingManagementSystemDbContext.
-
-Update Evaluation Status (for Doctors): If the evaluator is a Doctor, the corresponding CommitteeDoctorSchedule record is updated to mark HasCompletedEvaluation as true.
-
-Save Changes: IUnitOfWork.CompleteAsync() (or _dbContext.SaveChangesAsync()) is called to persist all changes to the database.
-
-Confirmation is sent to the client.
+**Steps:**
+1.  **Doctor Submits Grades**: Doctor client sends evaluation data (schedule ID, team ID, optional student ID, list of criteria grades) to `EvaluationsController`.
+2.  **Controller Authorization & Validation**:
+    *   Authenticates the doctor and determines their role (Supervisor/Examiner) based on the schedule and JWT claims.
+    *   Validates that the submitted grades are within the `MaxGrade` for each criterion.
+3.  **Data Persistence**:
+    *   For each grade item, a new `Evaluation` entity is created.
+    *   These entities are added to the `GradingManagementSystemDbContext`.
+4.  **Update Evaluation Status (for Doctors)**: If the evaluator is a Doctor, the corresponding `CommitteeDoctorSchedule` record is updated to mark `HasCompletedEvaluation` as true.
+5.  **Save Changes**: `IUnitOfWork.CompleteAsync()` (or `_dbContext.SaveChangesAsync()`) is called to persist all changes to the database.
+6.  Confirmation is sent to the client.
 
 These flows represent common interactions. Other flows, such as project idea submission, team creation, and task management, follow similar patterns involving controllers, services, repositories, and the database.
 
