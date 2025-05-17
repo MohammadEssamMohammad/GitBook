@@ -2489,3 +2489,188 @@ graph TD
 *   **Test in a Dedicated Editor:** Copy each diagram code block individually and paste it into a reliable online Mermaid editor (like the official one at [https://mermaid.live](https://mermaid.live) or others). This will help isolate if the problem is with the diagram code itself or the environment you're using to render it.
 *   **Incremental Building:** If a diagram is complex, try building it piece by piece in the editor to see which addition causes the error.
 *   **Renderer Specifics:** Some renderers (especially those embedded in other platforms like GitHub, GitLab, or specific documentation tools) might have slightly different parsing rules or support a subset of Mermaid features.
+
+
+# super simplified
+I apologize for the continued trouble with the Mermaid diagrams. It seems the renderer you're using is particularly strict or has specific parsing quirks. The "PS" error usually points to issues with node labels (text within brackets []), especially if they contain parentheses, colons, or other special characters that aren't handled well. The "NODE_STRING" error in the use case diagram might be due to how actors are declared or the labels for use cases.
+
+Let's try ultra-minimalist labels for the problematic diagrams, removing almost all descriptive text from within the node brackets and relying on the node ID for clarity where possible.
+
+3. Component Diagram (High-Level Backend Structure - Ultra Simplified)
+
+graph TD
+    subgraph BackendAppComponents [Backend Application]
+        APILayer[API_Layer]
+        ServiceLayer[Service_Layer]
+        RepositoryLayer[Repository_Layer]
+        CoreLayer[Core_Layer]
+    end
+
+    DatabaseComponent[(Database)]
+
+    APILayer -->|Uses| ServiceLayer
+    APILayer -->|Uses| CoreLayer
+
+    ServiceLayer -->|Uses Interfaces| CoreLayer
+    ServiceLayer -->|Uses Implementations| RepositoryLayer
+
+    RepositoryLayer -->|Uses Entities| CoreLayer
+    RepositoryLayer -->|Accesses| DatabaseComponent
+
+    classDef layer_presentation fill:#89CFF0,stroke:#333,stroke-width:2px;
+    classDef layer_service fill:#98FB98,stroke:#333,stroke-width:2px;
+    classDef layer_repo fill:#FFDAB9,stroke:#333,stroke-width:2px;
+    classDef layer_core fill:#FFFFE0,stroke:#333,stroke-width:2px;
+    classDef external_db fill:#orange,stroke:#333,stroke-width:2px;
+
+    class APILayer layer_presentation;
+    class ServiceLayer layer_service;
+    class RepositoryLayer layer_repo;
+    class CoreLayer layer_core;
+    class DatabaseComponent external_db;
+
+
+Changes Made:
+
+Node labels like APILayer[API Layer (Controllers, Hubs)] are now just APILayer[API_Layer]. Underscores are generally safer than spaces or special characters within node IDs if the label itself is causing issues. Here, I'm using it in the label text for clarity.
+
+4. Use Case Diagram (Ultra Simplified)
+
+graph LR
+    actor Admin
+    actor Doctor
+    actor Student
+
+    subgraph SystemBoundary [Grading Management System]
+        direction LR
+        UC1[Manage_Sys_Config]
+        UC2[Admin_Manage_Users]
+        UC3[Admin_Review_Projects]
+        UC4[Admin_Manage_Schedules]
+        UC5[Admin_Send_Notifications]
+        UC6[Admin_Get_Reports]
+
+        UC7[Doctor_Manage_Projects]
+        UC8[Doctor_Manage_Tasks]
+        UC9[Doctor_Perform_Evaluations]
+        UC10[Doctor_View_Schedules]
+
+        UC11[Student_Manage_Team]
+        UC12[Student_Manage_Project_Sub]
+        UC13[Student_View_Grades]
+        UC14[Student_View_Schedules]
+        UC15[Student_View_Tasks]
+        UC16[Student_Handle_Invites]
+
+        UC_Login[Login]
+        UC_Profile[Manage_Profile]
+        UC_Notifications_View[View_Notifications]
+    end
+
+    Admin --> UC1
+    Admin --> UC2
+    Admin --> UC3
+    Admin --> UC4
+    Admin --> UC5
+    Admin --> UC6
+
+    Doctor --> UC7
+    Doctor --> UC8
+    Doctor --> UC9
+    Doctor --> UC10
+
+    Student --> UC11
+    Student --> UC12
+    Student --> UC13
+    Student --> UC14
+    Student --> UC15
+    Student --> UC16
+
+    Admin --> UC_Login
+    Doctor --> UC_Login
+    Student --> UC_Login
+
+    Admin --> UC_Profile
+    Doctor --> UC_Profile
+    Student --> UC_Profile
+
+    Admin --> UC_Notifications_View
+    Doctor --> UC_Notifications_View
+    Student --> UC_Notifications_View
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Mermaid
+IGNORE_WHEN_COPYING_END
+
+Changes Made:
+
+Each actor declaration is on its own line (though Mermaid typically allows them on one).
+
+Removed colons and descriptive text from within the use case node labels (e.g., UC1[Admin: Manage Configuration] became UC1[Manage_Sys_Config]). The actor linking makes the "Admin:" part redundant.
+
+Used underscores instead of spaces in the labels for safety.
+
+5. Deployment Diagram (Ultra Simplified)
+
+graph TD
+    subgraph UserDeviceNode [User Device]
+        BrowserApp[Browser_Angular_SPA]
+    end
+
+    subgraph ServerInfra [Server Infrastructure]
+        direction LR
+        WebServerNode[Web_Server]
+        DbServerNode[Database_Server]
+    end
+
+    subgraph ExternalServicesNode [External Services]
+        EmailInfraNode[Email_Infrastructure_SMTP]
+    end
+
+    BrowserApp -->|HTTPS| WebServerNode
+
+    WebServerNode -- Deploys --> BackendAppArtifact[ASPNET_Core_API]
+    BackendAppArtifact -->|DB_Protocol| GradingDbArtifact[(Grading_DB)]
+    BackendAppArtifact -->|SMTP_TLS| EmailInfraNode
+
+    DbServerNode -- Hosts --> GradingDbArtifact
+
+    classDef node fill:#lightblue,stroke:#333,stroke-width:2px;
+    classDef artifact fill:#lightyellow,stroke:#333,stroke-width:2px;
+    classDef user_node fill:#wheat,stroke:#333,stroke-width:2px;
+
+    class WebServerNode,DbServerNode,EmailInfraNode node;
+    class BackendAppArtifact,GradingDbArtifact artifact;
+    class BrowserApp user_node;
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Mermaid
+IGNORE_WHEN_COPYING_END
+
+Changes Made:
+
+Node labels like WebServerNode[Web Server (e.g., IIS)] are now just WebServerNode[Web_Server].
+
+Removed parentheses and "e.g." from labels.
+
+Testing Suggestion:
+
+Please try these one by one in your rendering environment. If one still fails, it would be very helpful to know which one and if the error message changes.
+
+The most common culprits for the "PS" error in Mermaid, when the overall structure is correct, are:
+
+Parentheses () within node labels [].
+
+Colons : within node labels [].
+
+Special characters that aren't part of standard Markdown or basic text within labels.
+
+Line breaks (<br>) within labels if the renderer doesn't support them well.
+
+The "NODE_STRING" error is often about how nodes/actors are defined or linked before the parser expects it. Putting actor declarations on separate lines is a good first step to debug that for the Use Case diagram.
+
+If these super-simplified versions still fail, the issue might be more fundamental to how your environment handles even basic Mermaid subgraphs or node definitions, or there could be invisible problematic characters in the copy-paste. Using a dedicated online Mermaid editor would be the definitive test for the syntax itself.
