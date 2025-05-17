@@ -1923,3 +1923,212 @@ erDiagram
 *   `TemporaryUser` and `UserOtp` are included for completeness of the system but are more related to the user onboarding process than the core grading data flow once users are active.
 
 This ERD should provide a solid overview of your database structure. Given the size, it's best viewed in a tool that can render Mermaid or by copying it into a Mermaid live editor.
+
+
+# architechture
+Okay, let's create a high-level architectural diagram for your Graduation Projects Grading System.
+
+**Architecture Style:**
+
+Based on the project structure you've provided (separation into `GradingManagementSystem.APIs`, `GradingManagementSystem.Core`, `GradingManagementSystem.Repository`, and `GradingManagementSystem.Service`), your backend appears to be following a **Layered Architecture** (often referred to as N-Tier Architecture). While it shares some principles with Clean Architecture or Onion Architecture (like dependency inversion via interfaces and separation of concerns), it's most directly represented as layered.
+
+*   **`GradingManagementSystem.Core`**: Contains entities, DTOs, interfaces for repositories and services. This is akin to the "Domain" or "Entities" layer in Clean/Onion architecture.
+*   **`GradingManagementSystem.Repository`**: Implements data access logic, interacting with the database. This is the "Infrastructure" or "Data Access" layer.
+*   **`GradingManagementSystem.Service`**: Contains business logic, orchestrating calls between repositories and APIs. This is the "Application" or "Business Logic" layer.
+*   **`GradingManagementSystem.APIs`**: Handles HTTP requests, presentation logic (controllers), and API-specific configurations. This is the "Presentation" or "API" layer.
+
+**High-Level Architectural Diagram:**
+
+```mermaid
+graph TD
+    subgraph User_Devices [User Devices]
+        direction LR
+        Browser_Admin[Admin's Browser]
+        Browser_Doctor[Doctor's Browser]
+        Browser_Student[Student's Browser]
+    end
+
+    subgraph Frontend_Application [Frontend Application (Angular - SPA)]
+        direction TB
+        FE_Auth[Authentication Components (Login, Register, etc.)]
+        FE_AdminDashboard[Admin Dashboard Components]
+        FE_DoctorFeatures[Doctor Feature Components (Grading, Projects, etc.)]
+        FE_StudentFeatures[Student Feature Components (Team Hub, Grades, etc.)]
+        FE_Shared[Shared UI Components (Navbar, Popups)]
+        FE_Services[Angular Services (HTTP, State, Auth)]
+        FE_SignalR_Client[SignalR Client (for Notifications)]
+    end
+
+    subgraph Backend_Application [Backend Application (ASP.NET Core)]
+        direction TB
+        subgraph API_Layer [API Layer (GradingManagementSystem.APIs)]
+            direction LR
+            API_Controllers[API Controllers (*Controller.cs)]
+            API_Hubs[SignalR Hubs (NotificationHub)]
+            API_Middlewares[Middlewares (ExceptionHandling)]
+            API_Extensions[Extensions (Services, Identity, Swagger)]
+        end
+
+        subgraph Service_Layer [Service Layer (GradingManagementSystem.Service)]
+            direction LR
+            Auth_Service[AuthenticationService]
+            Profile_Service[UserProfileService]
+            Project_Service[Project Logic (Implicit)]
+            Team_Service[Team Logic (Implicit)]
+            Task_Service[TaskService]
+            Evaluation_Service[Evaluation Logic (Implicit)]
+            Notification_Service[Notification Logic (Implicit)]
+            Email_Service[EmailService]
+            Token_Service[TokenService]
+        end
+
+        subgraph Core_Layer [Core Layer (GradingManagementSystem.Core)]
+            direction LR
+            Core_Entities[Entities (*.cs in Core/Entities)]
+            Core_DTOs[DTOs (*.cs in Core/DTOs)]
+            Core_Interfaces[Interfaces (IUnitOfWork, IGenericRepository, I*Service, I*Repository)]
+        end
+
+        subgraph Repository_Layer [Repository/Data Access Layer (GradingManagementSystem.Repository)]
+            direction LR
+            Repo_UnitOfWork[UnitOfWork]
+            Repo_Generic[GenericRepository]
+            Repo_Specific[Specific Repositories (NotificationRepository, etc.)]
+            Repo_DbContext[GradingManagementSystemDbContext]
+            Repo_Identity[Identity SeedData]
+        end
+    end
+
+    subgraph External_Services [External Services]
+        DB[(SQL Server Database)]
+        SMTP[SMTP Server (for Emails)]
+    end
+
+    %% Frontend to Backend API Communication
+    Browser_Admin --> FE_Auth
+    Browser_Admin --> FE_AdminDashboard
+    Browser_Admin --> FE_Shared
+    Browser_Admin --> FE_Services
+    Browser_Admin --- FE_SignalR_Client
+
+    Browser_Doctor --> FE_Auth
+    Browser_Doctor --> FE_DoctorFeatures
+    Browser_Doctor --> FE_Shared
+    Browser_Doctor --> FE_Services
+    Browser_Doctor --- FE_SignalR_Client
+
+    Browser_Student --> FE_Auth
+    Browser_Student --> FE_StudentFeatures
+    Browser_Student --> FE_Shared
+    Browser_Student --> FE_Services
+    Browser_Student --- FE_SignalR_Client
+
+    FE_Services -->|HTTP Requests (REST API)| API_Controllers
+    FE_SignalR_Client <-->|WebSocket (SignalR)| API_Hubs
+
+    %% Backend Layer Dependencies (Following Dependency Rule - Outer layers depend on inner layers)
+    API_Controllers -->|Uses| Service_Layer
+    API_Controllers -->|Uses| Core_DTOs
+    API_Hubs -->|Uses| Service_Layer
+    API_Hubs -->|Uses| Core_DTOs
+    API_Middlewares --|> API_Layer
+    API_Extensions --|> API_Layer
+
+    Service_Layer -->|Uses| Core_Interfaces
+    Service_Layer -->|Uses| Repo_UnitOfWork
+    Service_Layer -->|Uses| Repo_Specific
+    Service_Layer -->|Uses| Email_Service
+    Service_Layer -->|Uses| Token_Service
+
+    %% Repository Layer depends on Core and interacts with DB
+    Repo_UnitOfWork -->|Uses| Repo_DbContext
+    Repo_Generic -->|Uses| Repo_DbContext
+    Repo_Specific -->|Uses| Repo_DbContext
+    Repo_DbContext --> DB
+    Repo_Identity --> DB
+
+    %% Core Layer is central, other layers can depend on its interfaces/entities
+    Service_Layer -->|Implements| Core_Interfaces
+    Repository_Layer -->|Implements| Core_Interfaces
+    API_Layer -->|Uses DTOs/Entities from| Core_Layer
+
+    %% External Service Interactions
+    Email_Service --> SMTP
+
+    classDef frontend fill:#lightgreen,stroke:#333,stroke-width:2px;
+    classDef backend fill:#lightblue,stroke:#333,stroke-width:2px;
+    classDef database fill:#orange,stroke:#333,stroke-width:2px;
+    classDef external fill:#lightgrey,stroke:#333,stroke-width:2px;
+    classDef userdevice fill:#wheat,stroke:#333,stroke-width:2px;
+    classDef signalr fill:#pink,stroke:#333,stroke-width:2px;
+
+
+    class FE_Auth,FE_AdminDashboard,FE_DoctorFeatures,FE_StudentFeatures,FE_Shared,FE_Services,FE_SignalR_Client frontend;
+    class API_Controllers,API_Hubs,API_Middlewares,API_Extensions,Auth_Service,Profile_Service,Project_Service,Team_Service,Task_Service,Evaluation_Service,Notification_Service,Email_Service,Token_Service,Core_Entities,Core_DTOs,Core_Interfaces,Repo_UnitOfWork,Repo_Generic,Repo_Specific,Repo_DbContext,Repo_Identity backend;
+    class DB database;
+    class SMTP external;
+    class Browser_Admin,Browser_Doctor,Browser_Student userdevice;
+    class API_Hubs,FE_SignalR_Client signalr;
+
+```
+
+**Explanation of the Diagram and Architecture:**
+
+1.  **User Devices:**
+    *   Users (Admin, Doctor, Student) interact with the system via their web browsers.
+
+2.  **Frontend Application (Angular - Single Page Application):**
+    *   **Components:**
+        *   `Authentication Components`: Handle login, registration, password reset UI.
+        *   `Admin Dashboard Components`: UI for admin-specific tasks (managing criteria, schedules, users, etc.).
+        *   `Doctor Feature Components`: UI for doctors (posting projects, grading, viewing schedules, managing tasks).
+        *   `Student Feature Components`: UI for students (team hub, viewing projects, grades, schedules, invites).
+        *   `Shared UI Components`: Reusable elements like the navigation bar, pop-up messages.
+    *   **Angular Services:**
+        *   Handle HTTP communication with the backend API.
+        *   Manage application state (though not explicitly shown as a separate state management library like NgRx, basic state management is inherent).
+        *   Authentication services to interact with `StoringUserService`.
+    *   **SignalR Client (`FE_SignalR_Client`):**
+        *   Embedded within the Angular application (likely initialized in a service like `NotificationsSignalrService`).
+        *   Establishes a persistent WebSocket connection with the backend's `NotificationHub`.
+        *   Listens for real-time notification events (`ReceiveNotification`) and updates the UI accordingly (e.g., through `NotificationListComponent`).
+
+3.  **Backend Application (ASP.NET Core - Layered Architecture):**
+    *   **API Layer (`GradingManagementSystem.APIs`):**
+        *   **API Controllers:** Receive HTTP requests from the frontend, validate input (often using DTOs from the Core layer), and delegate business logic to the Service Layer. They then format the response (often using DTOs) and send it back.
+        *   **SignalR Hubs (`NotificationHub`):** Manages real-time WebSocket connections. It receives messages (e.g., from `NotificationsController` after an admin sends a notification) and broadcasts them to connected clients in specific groups (All, Doctors, Students).
+        *   **Middlewares:** Handle cross-cutting concerns like exception handling (`ExceptionMiddleware`).
+        *   **Extensions:** Configure services, identity, Swagger, CORS, etc., during application startup.
+    *   **Service Layer (`GradingManagementSystem.Service`):**
+        *   Contains the core business logic of the application.
+        *   Services like `AuthenticationService`, `UserProfileService`, `TaskService` orchestrate operations. They use interfaces from the Core layer to interact with repositories (Data Access Layer).
+        *   This layer is responsible for complex validations, calculations, and coordinating multiple repository calls if needed for a single use case.
+        *   For example, `AuthenticationService.RegisterStudentAsync` handles temporary user creation, OTP generation, email sending, and final user creation upon verification, interacting with `UserManager`, `IEmailService`, and repositories via `IUnitOfWork`.
+    *   **Core Layer (`GradingManagementSystem.Core`):**
+        *   **Entities:** Plain C# objects representing the database tables (e.g., `Student`, `Team`, `Criteria`).
+        *   **DTOs (Data Transfer Objects):** Used to shape data passed between layers, especially between the API layer and the frontend, or between services and controllers.
+        *   **Interfaces:** Define contracts for repositories (`IGenericRepository`, `IStudentRepository`, etc.) and services (`IAuthenticationService`, `ITaskService`, etc.). This promotes loose coupling and allows for dependency injection. `IUnitOfWork` is a key interface here.
+    *   **Repository/Data Access Layer (`GradingManagementSystem.Repository`):**
+        *   **UnitOfWork:** Implements `IUnitOfWork`, managing database transactions and providing access to repositories.
+        *   **GenericRepository & Specific Repositories:** Implement the repository interfaces defined in the Core layer. They encapsulate the actual database interaction logic (CRUD operations) using Entity Framework Core.
+        *   **GradingManagementSystemDbContext:** The EF Core DbContext, representing the session with the database and allowing querying and saving data.
+        *   **Identity SeedData:** Handles initial seeding of roles and admin users.
+
+4.  **External Services:**
+    *   **SQL Server Database:** The persistent storage for all application data.
+    *   **SMTP Server:** Used by the `EmailService` to send emails (e.g., for OTP verification, password resets).
+
+**Communication Flow:**
+
+*   **HTTP Requests:** The Angular frontend makes HTTP requests (GET, POST, PUT, DELETE) to the ASP.NET Core backend API controllers.
+*   **SignalR (WebSockets):**
+    *   The Angular frontend's `SignalR Client` connects to the backend's `NotificationHub`.
+    *   When an admin sends a notification via `NotificationsController`, the controller (likely through a service) interacts with the `IHubContext<NotificationHub>` to send a message to specific client groups.
+    *   The `NotificationHub` then pushes this message over the WebSocket connection to the relevant connected Angular clients.
+*   **Layer Dependencies (Backend):**
+    *   The API Layer depends on the Service Layer and the Core Layer (for DTOs/Entities).
+    *   The Service Layer depends on the Core Layer (interfaces, entities) and the Repository Layer (via interfaces).
+    *   The Repository Layer depends on the Core Layer (entities, repository interfaces) and directly interacts with the Database via EF Core.
+    *   The Core Layer ideally has no dependencies on other layers (it's the heart of the application). This aligns with the Dependency Inversion Principle.
+
+This architecture promotes separation of concerns, testability (especially for the Service and Core layers), and maintainability. The use of interfaces and dependency injection allows for flexibility and easier changes in the future.
