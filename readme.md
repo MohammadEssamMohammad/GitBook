@@ -898,3 +898,607 @@ The order of middleware registration is crucial:
 Finally, `app.Run()` starts the application and listens for incoming HTTP requests.
 
 This setup ensures that all necessary services are available via DI and the request pipeline is configured correctly to handle requests, authentication, routing, and real-time communication.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Okay, I will help you analyze your Grading Management System project.
+
+Based on the code you've provided and the functionality description, here's a breakdown:
+
+**I. Functionality of the Project as Modules:**
+
+1.  **User Authentication & Authorization (`AuthenticationController`, `IdentityServicesExtension`, `TokenService`):**
+    *   Student Registration (with OTP email verification)
+    *   Doctor Registration (Admin-only)
+    *   Admin Seeding (on application startup)
+    *   User Login (for all roles)
+    *   Password Management (Forget/Reset Password)
+    *   JWT-based authorization and role management.
+
+2.  **User Profile Management (`UserProfileController`, `UserProfileService`):**
+    *   Viewing user-specific profiles (Admin, Doctor, Student) with role-dependent information.
+    *   Changing username.
+    *   Changing password.
+    *   Changing profile picture.
+    *   Displaying current academic year/semester based on user's timezone and active academic appointment.
+
+3.  **Academic Year & Term Management (`AcademicAppointmentsController`):**
+    *   Admin: Creating new academic years with specific start/end dates for two terms.
+    *   Admin: Viewing all created academic appointments.
+    *   Admin: Setting one academic year as "Active" (disabling others).
+
+4.  **Grading Criteria Management (`CriteriaController`):**
+    *   Admin: Creating new grading criteria (name, description, max grade, evaluator type, target - student/team, specialty, term).
+    *   Admin: Viewing all active criteria.
+    *   Admin: Viewing a specific criterion by ID.
+    *   Admin: Updating existing criteria.
+    *   Admin: Deleting criteria.
+    *   Student: Viewing criteria relevant to their specialty.
+    *   *Constraint: Criteria creation/update is tied to the active academic year and term dates.*
+
+5.  **Project Idea & Management (`ProjectsController`):**
+    *   Doctor: Submitting project ideas for Admin review.
+    *   Student (Team Leader): Submitting team project ideas for Admin review.
+    *   Admin: Viewing pending project ideas (from Doctors and Teams).
+    *   Admin: Reviewing (Accepting/Rejecting) Doctor project ideas.
+    *   Admin: Reviewing (Accepting/Rejecting) Team project ideas and assigning a supervisor.
+    *   Student: Viewing accepted Doctor project ideas.
+    *   Doctor: Viewing their accepted project ideas.
+    *   Student/Doctor/Admin: Viewing all accepted team project ideas.
+    *   Student (Team Leader): Requesting an accepted Doctor project idea for their team.
+    *   Doctor: Viewing pending team requests for their project ideas.
+    *   Doctor: Reviewing (Accepting/Rejecting) team requests for their project ideas.
+    *   Student/Doctor/Admin: Viewing final (assigned) project ideas for teams.
+
+6.  **Team Management (`TeamsController`):**
+    *   Student: Creating a new team (becomes leader).
+    *   Student (Leader): Inviting other students (not yet in a team and of the same specialty) to their team.
+    *   Student: Viewing pending team invitations.
+    *   Student: Accepting/Rejecting team invitations.
+    *   Doctor: Viewing teams they supervise.
+    *   Admin: Viewing all teams that have projects and are not yet scheduled.
+
+7.  **Task Management (`TasksController`):**
+    *   Doctor (Supervisor): Creating tasks for specific students within a supervised team, setting deadlines.
+    *   Doctor/Student: Viewing all tasks for a specific team.
+    *   Doctor (Supervisor): Reviewing (marking as completed) a student's task.
+
+8.  **Evaluation Scheduling (`SchedulesController`):**
+    *   Admin: Creating evaluation schedules for teams with projects, assigning committee doctors (examiners), and linking to an active academic appointment. *Criteria are implicitly linked based on team specialty and schedule.*
+    *   Doctor: Viewing their assigned schedules (as Supervisor or Examiner).
+    *   Student: Viewing their team's evaluation schedule.
+
+9.  **Grading & Evaluation (`EvaluationsController`):**
+    *   Doctor (Supervisor): Retrieving teams they supervise and relevant criteria for evaluation.
+    *   Doctor (Examiner): Retrieving teams they examine and relevant criteria for evaluation.
+    *   Admin: Retrieving all teams and admin-specific criteria for evaluation.
+    *   Doctor/Admin: Submitting grades for teams/students based on criteria.
+    *   Doctor/Admin: Viewing previously submitted evaluations for a specific team/schedule.
+    *   Student: Viewing their aggregated grades based on criteria from all evaluators.
+
+10. **Real-time Notifications (`NotificationsController`, `NotificationHub`):**
+    *   Admin: Sending notifications/instructions to specific roles (All, Doctors, Students).
+    *   Doctor/Student: Receiving role-specific and "All" notifications in real-time.
+    *   Doctor/Student: Viewing all their received notifications.
+    *   Doctor/Student: Marking notifications as read.
+    *   Doctor/Student: Deleting notifications.
+
+11. **Reporting (Conceptual - based on `GetGradesReportComponent` and `apiGetExcel`):**
+    *   Admin: Generating an Excel report of grades for a specific specialty.
+
+**II. Diagrams:**
+
+Given the complexity, a full set of diagrams would be extensive. Here are key ones for the "Grading" module:
+
+**A. Component Diagram (Conceptual Frontend for Grading by Admin):**
+
+```mermaid
+graph LR
+    subgraph AdminDashboard
+        AdminDashboardComponent
+        subgraph AdminGradingSection
+            AdminGradingComponent --> TeamCardAdminGradingComponent
+        end
+        subgraph CriteriaManagementSection
+            AddCriteriaComponent
+            ConfigureCriteriaComponent --> CriteriaCardComponent
+            ConfigureCriteriaComponent --> CriteriaEditorComponent
+        end
+        subgraph AcademicYearManagementSection
+            UpdateTermsDurationComponent
+            SetActiveYearComponent
+        end
+        subgraph ScheduleManagementSection
+            CreateScheduleComponent --> TeamScheduleFormComponent
+            TeamScheduleFormComponent --> ExaminerSelectionCardComponent
+        end
+        subgraph ReportingSection
+            GetGradesReportComponent
+        end
+    end
+
+    AdminGradingComponent --> GetTeamsAdminGradingService
+    TeamCardAdminGradingComponent --> GetPreviousGradesForTeamService
+    AddCriteriaComponent --> AddCriteriaService
+    ConfigureCriteriaComponent --> GetAllCriteriaService
+    ConfigureCriteriaComponent --> UpdateCriteriaService
+    ConfigureCriteriaComponent --> DeleteCriteriaService
+    UpdateTermsDurationComponent --> CreateAcademicYearService
+    SetActiveYearComponent --> SetActiveYearService
+    CreateScheduleComponent --> CreateScheduleService
+    CreateScheduleComponent --> GetAllDrsService
+    GetGradesReportComponent --> GetExcelService
+
+    classDef component fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef service fill:#9cf,stroke:#333,stroke-width:2px;
+
+    class AdminDashboardComponent,AdminGradingComponent,TeamCardAdminGradingComponent,AddCriteriaComponent,ConfigureCriteriaComponent,CriteriaCardComponent,CriteriaEditorComponent,UpdateTermsDurationComponent,SetActiveYearComponent,CreateScheduleComponent,TeamScheduleFormComponent,ExaminerSelectionCardComponent,GetGradesReportComponent component;
+    class GetTeamsAdminGradingService,GetPreviousGradesForTeamService,AddCriteriaService,GetAllCriteriaService,UpdateCriteriaService,DeleteCriteriaService,CreateAcademicYearService,SetActiveYearService,CreateScheduleService,GetAllDrsService,GetExcelService service;
+```
+
+**B. Sequence Diagram: Full Grading Cycle (Admin Setup to Student Views Grade)**
+
+This diagram will be quite high-level due to the number of interactions.
+
+```mermaid
+sequenceDiagram
+    actor Admin
+    actor Doctor
+    actor Student
+    participant FE_Admin as Frontend (Admin UI)
+    participant FE_Doctor as Frontend (Doctor UI)
+    participant FE_Student as Frontend (Student UI)
+    participant BE_AcademicApp as AcademicAppointmentsController
+    participant BE_Criteria as CriteriaController
+    participant BE_Schedules as SchedulesController
+    participant BE_Teams as TeamsController
+    participant BE_Doctors as DoctorsController
+    participant BE_Evaluations as EvaluationsController
+    participant DB as Database
+
+    %% 1. Admin Sets Up Academic Year and Criteria
+    Admin->>FE_Admin: Create Academic Year (e.g., 2024-2025, Term dates)
+    FE_Admin->>BE_AcademicApp: POST /CreateAppointment
+    BE_AcademicApp->>DB: Store AcademicAppointment
+    Admin->>FE_Admin: Set Active Year (e.g., 2024-2025)
+    FE_Admin->>BE_AcademicApp: PUT /SetActiveYear
+    BE_AcademicApp->>DB: Update AcademicAppointment Status
+    Admin->>FE_Admin: Create Criteria (e.g., "Technical Quality", MaxGrade: 20, Evaluator: Examiner, For: Team, Specialty: CS)
+    FE_Admin->>BE_Criteria: POST /Create
+    BE_Criteria->>DB: Store Criteria (linked to active AcademicAppointment)
+
+    %% 2. Admin Creates Evaluation Schedule
+    Admin->>FE_Admin: Navigate to Create Schedule
+    FE_Admin->>BE_Teams: GET /AllTeamsWithProjects
+    BE_Teams->>DB: Fetch eligible teams
+    DB-->>BE_Teams: Teams List
+    BE_Teams-->>FE_Admin: Display Teams
+    FE_Admin->>BE_Doctors: GET /All
+    BE_Doctors->>DB: Fetch Doctors
+    DB-->>BE_Doctors: Doctors List
+    BE_Doctors-->>FE_Admin: Display Doctors
+    Admin->>FE_Admin: Selects Team (e.g., TeamX), Examiners (e.g., Dr.A, Dr.B), Date
+    FE_Admin->>BE_Schedules: POST /CreateSchedule (TeamX, Dr.A, Dr.B, Date)
+    BE_Schedules->>DB: Store Schedule, CommitteeDoctorSchedules (Examiners, Supervisor), CriteriaSchedules
+
+    %% 3. Doctor Performs Evaluation
+    Doctor->>FE_Doctor: Navigate to Grading
+    FE_Doctor->>BE_Evaluations: GET /AllTeamsForDoctorExaminationEvaluation (or /Supervision)
+    BE_Evaluations->>DB: Fetch Teams, relevant Criteria for Doctor
+    DB-->>BE_Evaluations: Teams & Criteria List
+    BE_Evaluations-->>FE_Doctor: Display Teams & Criteria
+    Doctor->>FE_Doctor: Selects TeamX, inputs grades for criteria
+    FE_Doctor->>BE_Evaluations: POST /SubmitGrades (TeamX, ScheduleID, Grades)
+    BE_Evaluations->>DB: Store Evaluation records, Update CommitteeDoctorSchedule.HasCompletedEvaluation
+    DB-->>BE_Evaluations: Success
+    BE_Evaluations-->>FE_Doctor: Success message
+
+    %% 4. Admin Performs Evaluation (Optional, for Admin-specific criteria)
+    Admin->>FE_Admin: Navigate to Admin Grading
+    FE_Admin->>BE_Evaluations: GET /AllTeamsForAdminEvaluation
+    BE_Evaluations->>DB: Fetch Teams, relevant Admin Criteria
+    DB-->>BE_Evaluations: Teams & Admin Criteria List
+    BE_Evaluations-->>FE_Admin: Display Teams & Criteria
+    Admin->>FE_Admin: Selects TeamX, inputs grades for admin criteria
+    FE_Admin->>BE_Evaluations: POST /SubmitGrades (TeamX, ScheduleID, Grades for Admin criteria)
+    BE_Evaluations->>DB: Store Evaluation records
+    DB-->>BE_Evaluations: Success
+    BE_Evaluations-->>FE_Admin: Success message
+
+    %% 5. Student Views Grades
+    Student->>FE_Student: Navigate to My Grades
+    FE_Student->>BE_Evaluations: GET /StudentGrades
+    BE_Evaluations->>DB: Fetch & Aggregate all evaluations for student/team
+    DB-->>BE_Evaluations: Aggregated Grades
+    BE_Evaluations-->>FE_Student: Display Grades
+    FE_Student->>BE_Criteria: GET /AllForStudent (To show criteria descriptions)
+    BE_Criteria->>DB: Fetch student-specific criteria
+    DB-->>BE_Criteria: Criteria List
+    BE_Criteria-->>FE_Student: Display Criteria info
+
+    %% 6. Admin Generates Grade Report
+    Admin->>FE_Admin: Navigate to Get Grades Report, Selects Specialty
+    FE_Admin->>BE_Evaluations: GET /ExportGradesForSpecialty/{specialty} (Conceptual endpoint)
+    BE_Evaluations->>DB: Fetch all relevant grades for specialty
+    DB-->>BE_Evaluations: Grade data
+    BE_Evaluations-->>FE_Admin: Excel file content
+    FE_Admin-->>Admin: Downloads Excel file
+```
+
+**III. How the "Grading Module" Functionality is Implemented:**
+
+**1. Setting Up the Grading Framework (Admin):**
+
+*   **Academic Year and Terms (`AcademicAppointmentsController`, `UpdateTermsDurationComponent`, `SetActiveYearComponent`):**
+    *   The Admin uses the UI (`UpdateTermsDurationComponent`) to send data (year string, term start/end dates) to `AcademicAppointmentsController.CreateNewAcademicAppointment`.
+    *   This controller action validates the input (e.g., year format, date logic) and creates an `AcademicAppointment` entity, saving it to the database.
+    *   The `SetActiveYearComponent` calls `AcademicAppointmentsController.GetAllAcademicAppointments` to list years. When an admin chooses to set one active, `AcademicAppointmentsController.SetActiveAcademicYearAppointment` is called, which updates the `Status` field of the chosen `AcademicAppointment` to "Active" and others to "Inactive" in the database.
+*   **Criteria Definition (`CriteriaController`, `AddCriteriaComponent`, `ConfigureCriteriaComponent`):**
+    *   The Admin uses `AddCriteriaComponent` to define criteria. The form data (name, description, max grade, evaluator type, target, specialty, term) is sent to `CriteriaController.CreateNewCriteria`.
+    *   This backend method first checks for an "Active" `AcademicAppointment`. It then validates that the current date falls within the specified term (First or Second) of this active appointment. If not, criteria creation is disallowed.
+    *   It also checks for duplicate criteria. If valid, a new `Criteria` entity is created, linked to the `AcademicAppointmentId` and `Year`, and saved.
+    *   `ConfigureCriteriaComponent` allows viewing (`GetAllCriteriaList`), updating (`UpdateExistingCriteria`), and deleting (`DeleteExistingCriteria`) criteria, all interacting with `CriteriaController`.
+
+**2. Scheduling Evaluations (Admin):**
+
+*   **Schedule Creation (`SchedulesController`, `CreateScheduleComponent`):**
+    *   The Admin uses `CreateScheduleComponent`. This component first fetches teams eligible for scheduling (those with projects and no existing schedule) via `TeamsController.GetAllTeamsWithProjects`. It also fetches all doctors via `DoctorsController.GetAllDoctors` to populate examiner choices.
+    *   The Admin selects a team, committee doctors (examiners), and a schedule date. This data is sent to `SchedulesController.CreateSchedule`.
+    *   The backend validates the schedule date (must be in the future and within the active academic appointment period).
+    *   A `Schedule` entity is created, linked to the `TeamId` and the active `AcademicAppointmentId`.
+    *   `CommitteeDoctorSchedule` entries are created: one for each selected examiner (role "Examiner") and one for the team's supervisor (role "Supervisor").
+    *   `CriteriaSchedule` entries are created by fetching all `Criteria` matching the team's specialty and linking them to the new `Schedule.Id` along with their `MaxGrade`.
+
+**3. Performing Evaluations (Doctor/Admin):**
+
+*   **Retrieving Teams and Criteria for Evaluation (`EvaluationsController`, `DrGradingComponent`, `AdminGradingComponent`):**
+    *   **Doctors (Supervisor Role):** `DrGradingComponent` calls `EvaluationsController.GetAllTeamsForDoctorSupervisionEvaluation`. This backend method identifies the logged-in doctor, finds teams they supervise, checks for active schedules linked to the active academic year, and retrieves criteria relevant to those teams' specialties where `Evaluator` is "Supervisor".
+    *   **Doctors (Examiner Role):** `DrGradingComponent` calls `EvaluationsController.GetAllTeamsForDoctorExaminationEvaluation`. This backend method identifies the logged-in doctor, finds teams they are scheduled to examine (via `CommitteeDoctorSchedules`), checks for active schedules, and retrieves criteria relevant to those teams' specialties where `Evaluator` is "Examiner".
+    *   **Admins:** `AdminGradingComponent` calls `EvaluationsController.GetAllTeamsForAdminEvaluation`. This fetches all teams with active schedules and retrieves criteria where `Evaluator` is "Admin" for the respective team specialties.
+    *   In all cases, the backend DTOs (`TeamsWithCriteriaBySpecialtyGroupDto`) group teams by specialty and include the relevant criteria for each group.
+*   **Submitting Grades (`EvaluationsController`, `GradeTeamComponent`, `TeamCardAdminGradingComponent`):**
+    *   The UI (e.g., `GradeTeamComponent` for doctors, `TeamCardAdminGradingComponent` for admins) presents forms based on the fetched criteria.
+    *   When grades are submitted, a `SubmitEvaluationDto` (containing `ScheduleId`, `TeamId`, optional `StudentId` if criteria is for individual students, and a list of `GradeItemDto` {CriteriaId, Grade}) is sent to `EvaluationsController.SubmitGrades`.
+    *   The backend validates the evaluator's role and authorization for the given team/schedule. It checks if the grade is within the `MaxGrade` for each criterion.
+    *   New `Evaluation` entities are created and saved, linking to the `ScheduleId`, `CriteriaId`, `EvaluatorId` (Doctor or Admin), `EvaluatorRole`, `TeamId`, and optionally `StudentId`.
+    *   For doctors, upon successful submission, the corresponding `CommitteeDoctorSchedule.HasCompletedEvaluation` flag is set to `true`.
+*   **Viewing Previously Submitted Grades (`EvaluationsController`):**
+    *   Doctors/Admins can view grades they've previously submitted for a specific team and schedule via `EvaluationsController.GetTeamEvaluations`. This fetches `Evaluation` records matching the `teamId`, `scheduleId`, and the current evaluator's ID and role.
+
+**4. Students Viewing Grades & Criteria:**
+
+*   **Viewing Criteria (`CriteriaController`, `MyGradesComponent`):**
+    *   `MyGradesComponent` calls `CriteriaController.GetAllCriteriaListForStudentBasedOnYourSpecialty`. The backend identifies the student and fetches `Criteria` entities matching their `Specialty` and where `IsActive` is true.
+*   **Viewing Grades (`EvaluationsController`, `MyGradesComponent`):**
+    *   `MyGradesComponent` calls `EvaluationsController.GetStudentGrades`.
+    *   The backend identifies the student and their team. It fetches all `Evaluation` records where `StudentId` matches the student or `TeamId` matches the student's team.
+    *   The grades are then processed:
+        *   Supervisor and Admin grades are summed up per criterion.
+        *   Examiner grades are averaged per criterion (as multiple examiners might grade the same team/student on the same criteria).
+    *   The combined, processed grades are returned to the student.
+
+**5. Generating Grade Reports (Admin):**
+
+*   **Exporting Grades (`GetGradesReportComponent`, Assumed Backend Endpoint):**
+    *   `GetGradesReportComponent` likely calls an endpoint like `/api/Evaluations/ExportGradesForSpecialty/{specialty}`.
+    *   The backend would fetch all relevant `Evaluation` data for the given specialty, potentially aggregate it further (e.g., final scores per student/team), and format it into an Excel file (e.g., using a library like EPPlus).
+    *   The file content (as base64 or byte array) and content type are returned. The frontend (`get-grades-report.component.ts`) then uses `base64ToArrayBuffer` and `URL.createObjectURL` to enable the download for the admin.
+
+**IV. Steps Users Need to Do to Get the Functionality Done:**
+
+**(Detailed in Section II: "User Steps for the Grading Module")**
+
+This covers the main flow from an Admin setting up the grading parameters, scheduling evaluations, Doctors/Admins performing the grading, students viewing their results, and finally, an Admin generating a report.Okay, this is a comprehensive system! Let's break down the "Grading" module as requested.
+
+**I. Functionality of the Project - Grading Module Focus:**
+
+Based on your code, the grading process involves several interconnected sub-modules and actors:
+
+1.  **Academic Calendar Setup (Admin):**
+    *   Module: `AcademicAppointmentsController`
+    *   Functionality: Defines academic years and their term start/end dates. This is foundational as criteria and schedules are linked to active academic periods.
+    *   Key Actions: Create Academic Year, Set Active Academic Year.
+
+2.  **Criteria Management (Admin):**
+    *   Module: `CriteriaController`
+    *   Functionality: Allows admins to define what will be graded (criteria), by whom (evaluator role), for whom (student/team), the maximum points, for which specialty, and during which term of an academic year.
+    *   Key Actions: Create Criteria, View Criteria, Update Criteria, Delete Criteria.
+
+3.  **Scheduling Evaluations (Admin):**
+    *   Module: `SchedulesController` (depends on `TeamsController` for teams with projects, `DoctorsController` for examiners)
+    *   Functionality: Admin sets up specific evaluation events for teams, assigning committee doctors (examiners) and linking to the active academic calendar. Criteria are associated based on the team's specialty.
+    *   Key Actions: Create Schedule (links team, examiners, supervisor, and relevant criteria).
+
+4.  **Grade Submission (Doctor & Admin):**
+    *   Module: `EvaluationsController`
+    *   Functionality:
+        *   Doctors (as Supervisors or Examiners) input grades for teams/students based on the predefined criteria for their role and the team's specialty during a scheduled evaluation.
+        *   Admins input grades for teams/students based on admin-specific criteria.
+    *   Key Actions: Get Teams for Evaluation (role-specific), Submit Grades, View Previously Submitted Grades (for the evaluator).
+
+5.  **Grade Viewing (Student):**
+    *   Module: `EvaluationsController`, `CriteriaController`
+    *   Functionality: Students can view their own grades, which are aggregated from various evaluators (Supervisor, Examiners, Admin), and see the criteria they were graded against.
+    *   Key Actions: Get Student Grades, Get Student-Specific Criteria.
+
+6.  **Grade Reporting (Admin - Conceptual):**
+    *   Module: (Frontend: `GetGradesReportComponent`, Backend: Assumed `/api/Evaluations/ExportGradesForSpecialty/` endpoint from your frontend API model)
+    *   Functionality: Admin can generate an Excel report of grades for a selected specialty.
+    *   Key Actions: Export Grades to Excel.
+
+**II. Diagrams:**
+
+**A. Component Diagram (Conceptual Frontend for Grading):**
+
+This diagram shows the relationships between the main frontend components involved in the grading process.
+
+```mermaid
+graph TD
+    subgraph Admin UI
+        A1[AdminDashboard] --> A2[AddCriteriaComponent]
+        A1 --> A3[ConfigureCriteriaComponent]
+        A3 --> A3a[CriteriaCardComponent]
+        A3 --> A3b[CriteriaEditorComponent]
+        A1 --> A4[UpdateTermsDurationComponent]
+        A1 --> A5[SetActiveYearComponent]
+        A1 --> A6[CreateScheduleComponent]
+        A6 --> A6a[TeamScheduleFormComponent]
+        A6a --> A6b[ExaminerSelectionCardComponent]
+        A1 --> A7[AdminGradingComponent]
+        A7 --> A7a[TeamCardAdminGradingComponent]
+        A1 --> A8[GetGradesReportComponent]
+    end
+
+    subgraph Doctor UI
+        D1[DrGradingComponent] --> D1a[GradeTeamComponent]
+        D2[ScheduleComponentDr] --> D2a[ScheduleCardDrComponent]
+    end
+
+    subgraph Student UI
+        S1[MyGradesComponent]
+        S2[ScheduleComponentStudent] --> S2a[ScheduleCardStudent]
+    end
+
+    A2 --> AddCriteriaService
+    A3 --> GetAllCriteriaService
+    A3a --> UpdateCriteriaService
+    A3a --> DeleteCriteriaService
+    A4 --> CreateAcademicYearService
+    A5 --> SetActiveYearService
+    A6 --> CreateScheduleService
+    A6 --> GetAllDrsService
+    A7a --> GetTeamsAdminGradingService
+    A7a --> GetPreviousGradesForTeamService
+    A8 --> GetExcelService
+
+    D1a --> GetTeamsForDrGradingService
+    D1a --> GetPreviousGradesForTeamService
+    D2 --> GetMySchedulesService
+
+    S1 --> GetMyGradesService
+    S2 --> GetMySchedulesService
+
+    classDef component fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef service fill:#9cf,stroke:#333,stroke-width:2px;
+    class A1,A2,A3,A3a,A3b,A4,A5,A6,A6a,A6b,A7,A7a,A8 component;
+    class D1,D1a,D2,D2a component;
+    class S1,S2,S2a component;
+    class AddCriteriaService,GetAllCriteriaService,UpdateCriteriaService,DeleteCriteriaService,CreateAcademicYearService,SetActiveYearService,CreateScheduleService,GetAllDrsService,GetTeamsAdminGradingService,GetPreviousGradesForTeamService,GetExcelService,GetTeamsForDrGradingService,GetMySchedulesService,GetMyGradesService service;
+
+    %% Renaming for clarity if needed, e.g., Student's ScheduleComponent and Doctor's ScheduleComponent are distinct in routing but might share UI card
+    %% For simplicity, showing distinct paths as per routing.
+```
+
+*Note: `ScheduleComponentDr` and `ScheduleComponentStudent` represent the `ScheduleComponent` as used by Doctors and Students respectively, potentially rendering different views or data.*
+
+**III. How the Grading Module Functionality is Implemented & User Steps:**
+
+Here's a step-by-step breakdown of the grading module:
+
+**Step 1: Admin - Academic Year and Term Setup**
+
+*   **User (Admin) Action:**
+    1.  Navigates to the "Update Term Times" section in the Admin Dashboard.
+    2.  Fills in the academic year (e.g., "2024-2025"), start and end dates for the first term, and start and end dates for the second term.
+    3.  Submits the form.
+*   **Frontend Implementation (`update-terms-duration.component.ts`):**
+    1.  The `form` (a `FormGroup`) collects the input. It includes custom validators (`yearDifferenceValidator`, `termDateOrderValidator`) to ensure logical date entries.
+    2.  On submit (`onSubmit()`), it constructs a `body` object with the year string and ISO string formatted dates.
+    3.  It calls `createAcademicYearService.createAcademicYear(body)`.
+    4.  `CreateAcademicYearService` makes a POST request to `apiCreateNewAppointment` (`/api/AcademicAppointments/CreateAppointment`) with the JWT token.
+*   **Backend Implementation (`AcademicAppointmentsController.cs` - `CreateNewAcademicAppointment` method):**
+    1.  Receives `CreateAcademicAppointmentDto`.
+    2.  Performs extensive validation:
+        *   Checks for null model.
+        *   Validates year format (YYYY-YYYY).
+        *   Checks if an appointment for that year already exists.
+        *   Validates term date logic (start before end, first term before second term).
+    3.  If valid, creates a new `AcademicAppointment` entity.
+    4.  Adds the entity to `_dbContext.AcademicAppointments` and calls `_dbContext.SaveChangesAsync()`.
+    5.  Returns a success `ApiResponse`.
+
+*   **User (Admin) Action (Setting Active Year):**
+    1.  Navigates to "Set Active Year".
+    2.  Views the list of academic years.
+    3.  Clicks "Set as Current Year" for a desired (inactive) year.
+*   **Frontend Implementation (`set-active-year.component.ts`):**
+    1.  `ngOnInit()`: Calls `setActiveYearService.getActiveYears()` to fetch all academic appointments.
+    2.  `SetActiveYearService` makes a GET request to `apiGetAllAppointmentYears` (`/api/AcademicAppointments/AllYears`).
+    3.  The list is displayed. When the button is clicked, `setActiveYear(year)` is called.
+    4.  This calls `setActiveYearService.setActiveYear(year.id)`.
+    5.  `SetActiveYearService` makes a PUT request to `apiSetActiveYear` (`/api/AcademicAppointments/SetActiveYear/{appointmentId}`).
+*   **Backend Implementation (`AcademicAppointmentsController.cs` - `SetActiveAcademicYearAppointment` method):**
+    1.  Receives `SetActiveYearDto` (containing `AppointmentId`).
+    2.  Finds the `AcademicAppointment` by `AppointmentId`.
+    3.  If found and not already active, sets its `Status` to "Active" and `LastUpdatedAt` to `DateTime.Now`.
+    4.  Sets the `Status` of all other academic appointments to "Inactive".
+    5.  Saves changes and returns a success `ApiResponse`.
+
+**Step 2: Admin - Define Grading Criteria**
+
+*   **User (Admin) Action:**
+    1.  Navigates to "Add Criteria".
+    2.  Fills in the criteria details: Name, Description, Max Grade, Evaluator (Admin/Supervisor/Examiner), Given To (Student/Team), Specialty, and Term (First-Term/Second-Term).
+    3.  Clicks "Add Criteria", then confirms in a popup.
+*   **Frontend Implementation (`add-criteria.component.ts`):**
+    1.  A `form` (`FormGroup`) captures the criteria details with validators.
+    2.  `showConfirmation()` is called on button click if the form is valid.
+    3.  If confirmed via `onSubmit()`, it calls `createCriteriaService.createCriteria(body)`.
+    4.  `AddCriteriaService` makes a POST request to `apiAddCriteria` (`/api/Criteria/Create`).
+*   **Backend Implementation (`CriteriaController.cs` - `CreateNewCriteria` method):**
+    1.  Receives `CreateCriteriaDto`.
+    2.  Validates input (null, term value).
+    3.  Checks if an identical active criterion already exists.
+    4.  **Crucially, fetches the "Active" `AcademicAppointment`.**
+    5.  **Validates that `DateTime.Now.Date` is within the start and end dates of the specified `model.Term` for the active `AcademicAppointment`.** If not, creation is denied.
+    6.  Creates a new `Criteria` entity, linking it to the `activeAppointment.Id` and `activeAppointment.Year`.
+    7.  Saves to the database via `_unitOfWork` and returns a success `ApiResponse`.
+
+**Step 3: Admin - Create Evaluation Schedules**
+
+*   **User (Admin) Action:**
+    1.  Navigates to "Create Schedule".
+    2.  The UI displays teams that have projects and are not yet scheduled.
+    3.  The UI displays a list of doctors to choose as examiners.
+    4.  Admin selects a team, 1-3 examiners (excluding the team's supervisor), and a schedule date.
+    5.  Submits the form.
+*   **Frontend Implementation (`create-schedule.component.ts` & `team-schedule-form.component.ts`):**
+    1.  `CreateScheduleComponent.ngOnInit()`:
+        *   Calls `createScheduleService.getTeamsWithProjects()` (GET to `/api/Teams/AllTeamsWithProjects`) to get eligible teams.
+        *   Calls `getAllDoctors.getAllDoctors()` (GET to `/api/Doctors/All`) for the examiner list.
+    2.  `TeamScheduleFormComponent` handles the form for a specific team.
+        *   It has a `scheduleForm` (`FormGroup`) for `scheduleDate` and an array for `examiners`.
+        *   `onExaminerSelect()` updates the `selectedExaminers` signal and the form control.
+    3.  `onConfirm()` in `TeamScheduleFormComponent` emits an event with `teamId`, formatted `scheduleDate`, and `examiners` list.
+    4.  `CreateScheduleComponent.createSchedule()` receives this event and calls `createScheduleService.createSchedule(data)`.
+    5.  `CreateScheduleService` makes a POST request to `apiCreateSchedule` (`/api/Schedules/CreateSchedule`).
+*   **Backend Implementation (`SchedulesController.cs` - `CreateSchedule` method):**
+    1.  Receives `CreateScheduleDto` (TeamId, ScheduleDate, CommitteeDoctorIds).
+    2.  Validates input: team exists and has a project, schedule date is in the future and within the active academic appointment period, committee doctor list is not empty, and doctor IDs are valid.
+    3.  Checks if a schedule already exists for the team.
+    4.  Creates a new `Schedule` entity, linking it to `TeamId` and the active `AcademicAppointment.Id`. Saves it.
+    5.  For each `doctorId` in `CommitteeDoctorIds`, creates a `CommitteeDoctorSchedule` entity with `ScheduleId`, `DoctorId`, and `DoctorRole = "Examiner"`.
+    6.  Creates a `CommitteeDoctorSchedule` entity for the `team.SupervisorId` with `DoctorRole = "Supervisor"`.
+    7.  Fetches all `Criteria` matching the `team.Specialty`.
+    8.  For each fetched criterion, creates a `CriteriaSchedule` entity linking `CriteriaId`, `ScheduleId`, and `MaxGrade`.
+    9.  Saves all `CommitteeDoctorSchedule` and `CriteriaSchedule` entities. Returns a success `ApiResponse`.
+
+**Step 4: Doctor/Admin - Submit Grades**
+
+*   **User (Doctor/Admin) Action:**
+    1.  Navigates to their respective grading section (e.g., "Grading" for Doctors, "Admin Grading" for Admins).
+    2.  The UI lists teams/students eligible for evaluation by them, along with relevant criteria.
+    3.  Selects a team (and possibly a student if criteria are individual).
+    4.  Enters grades for each criterion.
+    5.  Submits the grades.
+*   **Frontend Implementation (e.g., `dr-grading.component.ts`, `grade-team.component.ts` for Doctors; `admin-grading.component.ts`, `team-card-admin-grading.component.ts` for Admins):**
+    1.  **Fetching Data:**
+        *   `DrGradingComponent.ngOnInit()`: Calls `getTeamsForDrGradingService.getTeamsForSupervisorGrading()` and `getTeamsForExaminerGrading()`. These services make GET requests to `/api/Evaluations/AllTeamsForDoctorSupervisionEvaluation` and `/api/Evaluations/AllTeamsForDoctorExaminationEvaluation` respectively.
+        *   `AdminGradingComponent.ngOnInit()`: Calls `getTeamsAdminGradingService.getTeams()` (GET to `/api/Evaluations/AllTeamsForAdminEvaluation`).
+        *   These components then pass the specific team and criteria data to child components like `GradeTeamComponent` or `TeamCardAdminGradingComponent`.
+    2.  **Form Handling (e.g., `grade-team.component.ts`):**
+        *   `initializeForms()` sets up `teamGradingForm` and `studentGradingForm` (both `FormGroup`s with a `FormArray` named `grades`).
+        *   The `grades` FormArray is populated with FormGroups for each criterion (containing `criteriaId` and `grade` FormControls with validators like min/max).
+        *   It attempts to fetch previously submitted grades for the current evaluator using `getPreviousGradesService.getPreviousGradesForTeam()` (GET to `/api/Evaluations/TeamEvaluations/{teamId}/{scheduleId}`) to pre-fill the form if available.
+    3.  **Submission:**
+        *   When a form is submitted (e.g., `prepareTeamConfirmation()` or `prepareStudentConfirmation()`), it constructs a `submission` object.
+        *   This object (matching `SubmitEvaluationDto`) is then passed to a service method (e.g., `gradingService.postGrading()`).
+        *   The service makes a POST request to `apiSubmitGrades` (`/api/Evaluations/SubmitGrades`).
+*   **Backend Implementation (`EvaluationsController.cs` - `SubmitGrades` method):**
+    1.  Receives `SubmitEvaluationDto`.
+    2.  Identifies the evaluator (`AppUserId`, `AppUserRole`) from the JWT token.
+    3.  Determines `evaluatorId` (AdminId or DoctorId) and `evaluatorRole` ("Admin", "Supervisor", or "Examiner"). For Doctors, it validates if they are indeed the supervisor or a scheduled examiner for the given team and schedule.
+    4.  Iterates through `model.Grades`:
+        *   Fetches the `Criteria` by `gradeItem.CriteriaId`.
+        *   Validates if `gradeItem.Grade` is within `criteria.MaxGrade`.
+        *   Creates a new `Evaluation` entity with `ScheduleId`, `CriteriaId`, `DoctorEvaluatorId` (if doctor) or `AdminEvaluatorId` (if admin), `EvaluatorRole`, `TeamId`, `StudentId` (if applicable), and `Grade`.
+        *   Adds the new `Evaluation` to the context.
+    5.  Saves all changes via `_dbContext.SaveChangesAsync()`.
+    6.  If the evaluator is a Doctor, it updates the `HasCompletedEvaluation` flag to `true` for the relevant `CommitteeDoctorSchedule` entry.
+    7.  Returns a success `ApiResponse`.
+
+**Step 5: Student - View Grades**
+
+*   **User (Student) Action:**
+    1.  Navigates to "My Grades".
+    2.  The UI displays a legend of criteria applicable to their specialty and a report card with their grades.
+*   **Frontend Implementation (`my-grades.component.ts`):**
+    1.  `ngOnInit()`:
+        *   Calls `getMyGradesService.getMyCriteria()` (GET to `/api/Criteria/AllForStudent`) to fetch criteria descriptions.
+        *   Calls `getMyGradesService.getMyGrades()` (GET to `/api/Evaluations/StudentGrades`) to fetch their grades.
+    2.  The component then uses helper methods (`getFilteredCriteriaFromGiver`, etc.) to organize and display the criteria legend and the grades table.
+*   **Backend Implementation:**
+    *   **`CriteriaController.GetAllCriteriaListForStudentBasedOnYourSpecialty`:**
+        1.  Gets `studentAppUserId` from token.
+        2.  Finds the `Student` entity.
+        3.  Fetches `Criteria` where `IsActive == true` and `Specialty == student.Specialty`.
+        4.  Maps to `CriteriaObjectDto` and returns.
+    *   **`EvaluationsController.GetStudentGrades`:**
+        1.  Gets `appUserId` and `appUserRole` from token.
+        2.  Finds the `Student` entity (including `Team`).
+        3.  Fetches all `Evaluation` entities where `StudentId == student.Id` OR (`TeamId == student.TeamId` and `TeamId != null`).
+        4.  **Aggregates Grades:**
+            *   Groups evaluations by `EvaluatorRole` and then by `Criteria.Name`.
+            *   For "Supervisor" and "Admin" roles, it sums the grades for each criterion.
+            *   For "Examiner" role, it calculates the *average* grade for each criterion (since there can be multiple examiners).
+        5.  Concatenates the results from all roles and returns them.
+
+**Step 6: Admin - Generate Grade Report**
+
+*   **User (Admin) Action:**
+    1.  Navigates to "Get Grades Report".
+    2.  Selects a specialty from a dropdown.
+    3.  Clicks "Get excel".
+*   **Frontend Implementation (`get-grades-report.component.ts`):**
+    1.  A `form` (`FormGroup`) captures the selected `specialty`.
+    2.  `onSubmit()`: Calls `getExcelService.getExcelSheet(this.form.value.specialty!)`.
+    3.  `GetExcelService` makes a GET request to `apiGetExcel` (`/api/Evaluations/ExportGradesForSpecialty/{specialty}`).
+    4.  The response is expected to be an `ExcelResponse` containing `fileName` and base64 `fileContent`.
+    5.  The component decodes the base64 content using `base64ToArrayBuffer`, creates a Blob, generates an object URL using `URL.createObjectURL`, and makes it available for download via an `<a>` tag.
+*   **Backend Implementation (Assumed endpoint based on frontend: `/api/Evaluations/ExportGradesForSpecialty/{specialty}`):**
+    *   *(This endpoint is not explicitly shown in the provided backend controller files, but its functionality can be inferred.)*
+    1.  Receives the `specialty` as a path parameter.
+    2.  Queries the `Evaluations` table, likely joining with `Students`, `Teams`, `Criteria`, and `Schedules` to gather all necessary data for students/teams within the specified `specialty`.
+    3.  Aggregates grades similar to how `GetStudentGrades` does, but potentially for all students/teams in that specialty.
+    4.  Uses a library (e.g., EPPlus, ClosedXML) to generate an Excel file in memory.
+    5.  Returns the Excel file content (e.g., as a byte array or base64 string) along with the appropriate content type (`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`) and a suggested filename.
+
+**IV. Sequence Diagram for "Admin Setup to Student Views Grade":**
+
+(Provided in the previous section - a high-level overview of the entire flow)
+
+This detailed breakdown should give a good understanding of how the grading module is implemented and how users interact with it.
